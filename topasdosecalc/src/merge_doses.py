@@ -1,3 +1,4 @@
+import os
 import threading
 from datetime import datetime
 
@@ -98,9 +99,12 @@ def merge_doses(root, frame, progressbar, button, output, frame2, log):
         initial_file.DoseUnits = "Gy"
         initial_file.DoseType = "PHYSICAL"
         initial_file.DoseSummationType = "PLAN"
-
+        filename = frame.newseriesdescription + ".dcm"
         initial_file.save_as(
-            f"C://Users//sebas//Desktop//TESTS//{frame.newseriesdescription}.dcm"
+            f"{os.path.join(frame.folder_selected, filename)}"
+        )
+        output.add_text(
+            f"Saving {frame.newseriesdescription}.dcm to {frame.folder_selected}"
         )
 
         progressbar["value"] = 0

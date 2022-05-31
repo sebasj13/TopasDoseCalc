@@ -66,23 +66,44 @@ class StructureSelector(tk.Frame):
             self.parent.frame.dvh.set(False)
 
     def calculate_dvhs(self):
+
+        if self.parent.frame.dvh.get() == False:
+            self.parent.pb.grid_forget()
+            self.parent.log.grid_forget()
+            self.parent.log.configure(text="Merging Sims ...")
+            self.parent.pb["value"] = 0
+            self.parent.run.grid(
+                row=2, column=1, columnspan=2, padx=(5, 5), pady=(5, 5)
+            )
+            self.parent.output.add_text(f"(SUCCESS) Completed!")
+            return
+
         def calculate_TOPAS_DVHs():
             dvh = []
+            filename = self.parent.frame.newseriesdescription + ".dcm"
+            filename = os.path.join(self.parent.frame.folder_selected, filename)
 
             while True:
-                if os.path.exists(
-                    f"C://Users//sebas//Desktop//TESTS//{self.parent.frame.newseriesdescription}.dcm"
-                ):
+                if os.path.exists(filename):
                     for i in range(len(self.structures)):
                         if self.variables[i].get() == True:
                             dvh += [
                                 dv.get_dvh(
                                     self.parent.frame.rtstruct,
-                                    f"C://Users//sebas//Desktop//TESTS//{self.parent.frame.newseriesdescription}.dcm",
-                                    # "C://Users//sebas//Documents//GitHub//dicom2topas//dicom2topas//Plans//16_22_Patientin_Kopf//RD1.2.752.243.1.1.20220112085113628.6500.76031.dcm",
+                                    filename,
                                     self.structures[i][0],
                                 )
                             ]
+                            self.parent.pb["value"] += 50 / len(
+                                [
+                                    variable
+                                    for variable in self.variables
+                                    if variable.get() == True
+                                ]
+                            )
+                            self.parent.output.add_text(
+                                f"Calculating TOPAS DVH for structure {self.structures[i][1]} ..."
+                            )
                 if len(dvh) == len([x for x in self.variables if x.get() == True]):
                     break
             self.topas_dvh = dvh
@@ -99,6 +120,16 @@ class StructureSelector(tk.Frame):
                             self.structures[i][0],
                         )
                     ]
+                    self.parent.pb["value"] += 50 / len(
+                        [
+                            variable
+                            for variable in self.variables
+                            if variable.get() == True
+                        ]
+                    )
+                    self.parent.output.add_text(
+                        f"Calculating Reference DVH for structure {self.structures[i][1]} ..."
+                    )
             self.ref_dvh = dvh
 
         self.parent.log.configure(text="Creating DVHs ...")
@@ -118,8 +149,6 @@ class StructureSelector(tk.Frame):
                         self.topas_dvh[i].relative_volume.counts,
                         label=self.topas_dvh[i].name + " - TOPAS",
                     )
-                    self.parent.pb["value"] += 50 / len(self.ref_dvh)
-                    time.sleep(0.5)
 
                     plt.plot(
                         self.ref_dvh[i].bincenters,
@@ -127,8 +156,6 @@ class StructureSelector(tk.Frame):
                         label=self.ref_dvh[i].name + " - Ref",
                     )
 
-                    self.parent.pb["value"] += 50 / len(self.ref_dvh)
-                    time.sleep(0.5)
                 break
 
             except NameError:
@@ -137,12 +164,18 @@ class StructureSelector(tk.Frame):
         plt.xlabel("Dose [%s]" % self.ref_dvh[0].dose_units)
         plt.ylabel("Volume [%s]" % self.ref_dvh[0].relative_volume.volume_units)
         plt.legend(loc="best")
-        plt.savefig("C://Users//sebas//Desktop//plot.png", dpi=600)
+        self.parent.output.add_text(
+            f"Saving DVH.png to {self.parent.frame.folder_selected}"
+        )
+        plt.savefig(
+            os.path.join((self.parent.frame.folder_selected), "DVH.png"), dpi=600
+        )
 
         self.parent.pb.grid_forget()
         self.parent.log.grid_forget()
         self.parent.log.configure(text="Merging Sims ...")
         self.parent.pb["value"] = 0
         self.parent.run.grid(row=2, column=1, columnspan=2, padx=(5, 5), pady=(5, 5))
+        self.parent.output.add_text(f"(SUCCESS) Completed!")
         return
 

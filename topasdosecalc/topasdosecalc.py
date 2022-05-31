@@ -63,17 +63,13 @@ class TopasDoseCalc:
             ),
         )
         self.frame = Configurator(self.root, self)
-        self.frame.grid(
-            row=0, column=0, columnspan=5, padx=(5, 5), pady=(5, 0)
-        )  # .pack(fill="both", expand=True, padx=5, pady=(5, 0))
+        self.frame.grid(row=0, column=0, columnspan=5, padx=(5, 5), pady=(5, 0))
         self.root.columnconfigure(4, weight=10)
         self.frame2 = StructureSelector(self.root, self)
         self.frame2.grid(row=1, column=4, padx=(5, 5), pady=(5, 5))
         self.output = Output(self.root)
         self.output.add_text("Initialized")
-        self.output.grid(
-            row=1, column=0, columnspan=4, padx=(5, 5), pady=(5, 5)
-        )  # pack(fill="x", expand=True, padx=5, pady=(5, 0))
+        self.output.grid(row=1, column=0, columnspan=4, padx=(5, 5), pady=(5, 5))
         self.pb = ttk.Progressbar(
             self.root, orient=tk.HORIZONTAL, length=400, mode="determinate"
         )
@@ -94,8 +90,6 @@ class TopasDoseCalc:
             ).start(),
         )
         self.run.grid(row=2, column=1, columnspan=2, padx=(5, 5), pady=(5, 5))
-
-        # self.pb.pack(side=tk.BOTTOM, pady=(5, 0), fill="both")
 
     def mainloop(self):
         self.root.mainloop()

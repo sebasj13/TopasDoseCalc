@@ -1,0 +1,3 @@
+graft topasdosecalc/src/Azure-ttk-theme
+graft topasdosecalc/src
+exclude __pychache__/

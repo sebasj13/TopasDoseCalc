@@ -1,0 +1,3 @@
+[submodule "topasdosecalc/src/Azure-ttk-theme"]
+	path = topasdosecalc/src/Azure-ttk-theme
+	url = https://github.com/rdbende/Azure-ttk-theme

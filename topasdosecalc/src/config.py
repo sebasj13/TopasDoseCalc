@@ -277,16 +277,13 @@ class Configurator(tk.Frame):
                             )
                         elif dcmfile.Modality == "RTPLAN":
                             self.rtplan = os.path.join(r, file)
-                            self.fractions = int(
-                                dcmfile.FractionGroupSequence[
-                                    0
-                                ].NumberOfFractionsPlanned
-                            )
-                            self.total_mu = float(
-                                dcmfile.FractionGroupSequence[0]
-                                .ReferencedBeamSequence[0]
-                                .BeamMeterset
-                            )
+                            self.fractions = 0
+                            for frac in dcmfile.FractionGroupSequence:
+                                self.fractions += int(frac.NumberOfFractionsPlanned)
+                            self.total_mu = []
+                            for mu in dcmfile.FractionGroupSequence:
+                                for beam in mu.ReferencedBeamSequence:
+                                    self.total_mu += [float(beam.BeamMeterset)]
                             self.mus = []
                             for j in range(len(dcmfile.BeamSequence)):
                                 for i in range(
@@ -294,15 +291,20 @@ class Configurator(tk.Frame):
                                 ):
                                     self.mus += [
                                         float(
-                                            dcmfile.BeamSequence[0]
+                                            dcmfile.BeamSequence[j]
                                             .ControlPointSequence[i]
                                             .CumulativeMetersetWeight
                                         )
-                                        * self.total_mu
+                                        * self.total_mu[j]
                                     ]
 
                             self.mus = np.diff(self.mus).tolist()
                             self.mus.append(0)
+                            self.total_mu = sum(self.total_mu)
+
+                            for index, value in enumerate(self.mus):
+                                if value < 0:
+                                    self.mus[index] = 0
 
                             self.parent.output.add_text(
                                 f"Selected reference RTPLAN file: {file}"

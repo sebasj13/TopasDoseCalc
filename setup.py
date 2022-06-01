@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="topasdosecalc",
-    version="1.0.1",
+    version="1.0.2",
     author="Sebastian Schäfer",
     author_email="sebastian.schaefer@student.uni-halle.de",
     description="Merge and scale TOPAS DICOMS - calculate and compare DVHs",
@@ -25,6 +25,9 @@ setuptools.setup(
         "topas2numpy",
         "pydicom",
         "dicompyler-core",
+        "natsort",
+        "Pillow",
+        "topas2numpy",
     ],
     packages=["topasdosecalc", "topasdosecalc.src"],
     scripts=["topasdosecalc/topasdosecalc.py"],

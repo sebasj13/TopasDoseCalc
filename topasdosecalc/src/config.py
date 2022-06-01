@@ -7,6 +7,7 @@ from tkinter import simpledialog as sd
 
 import numpy as np
 import topas2numpy
+from dicompylercore import dicomparser
 from natsort import natsorted, ns
 from PIL import Image, ImageTk
 from pydicom import dcmread
@@ -159,14 +160,13 @@ class Configurator(tk.Frame):
             for r, d, f in os.walk(self.folder_selected):
                 for file in f:
                     if file.endswith("dcm"):
-                        with dcmread(os.path.join(r, file)) as dcmfile:
-                            if dcmfile.Modality == "RTDOSE":
-                                self.simulations += [os.path.join(r, file)]
+                        # with dcmread(os.path.join(r, file)) as dcmfile:
+                        dcmfile = dicomparser.DicomParser(os.path.join(r, file))
+                        if dcmfile.ds.Modality == "RTDOSE":
+                            self.simulations += [os.path.join(r, file)]
 
-                                self.parenttk.update_idletasks()
-                                self.parent.pb["value"] += 100 / len(
-                                    next(os.walk(r))[2]
-                                )
+                            self.parenttk.update_idletasks()
+                            self.parent.pb["value"] += 100 / len(next(os.walk(r))[2])
 
             self.parent.log.grid_forget()
             self.parent.log.configure(text="Merging sims ...")

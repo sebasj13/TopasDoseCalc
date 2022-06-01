@@ -87,6 +87,9 @@ class StructureSelector(tk.Frame):
                 if os.path.exists(filename):
                     for i in range(len(self.structures)):
                         if self.variables[i].get() == True:
+                            self.parent.output.add_text(
+                                f"Calculating TOPAS DVH for structure {self.structures[i][1]} ..."
+                            )
                             dvh += [
                                 dv.get_dvh(
                                     self.parent.frame.rtstruct,
@@ -101,9 +104,7 @@ class StructureSelector(tk.Frame):
                                     if variable.get() == True
                                 ]
                             )
-                            self.parent.output.add_text(
-                                f"Calculating TOPAS DVH for structure {self.structures[i][1]} ..."
-                            )
+
                 if len(dvh) == len([x for x in self.variables if x.get() == True]):
                     break
             self.topas_dvh = dvh
@@ -113,6 +114,9 @@ class StructureSelector(tk.Frame):
 
             for i in range(len(self.structures)):
                 if self.variables[i].get() == True:
+                    self.parent.output.add_text(
+                        f"Calculating Reference DVH for structure {self.structures[i][1]} ..."
+                    )
                     dvh += [
                         dv.get_dvh(
                             self.parent.frame.rtstruct,
@@ -126,9 +130,6 @@ class StructureSelector(tk.Frame):
                             for variable in self.variables
                             if variable.get() == True
                         ]
-                    )
-                    self.parent.output.add_text(
-                        f"Calculating Reference DVH for structure {self.structures[i][1]} ..."
                     )
             self.ref_dvh = dvh
 

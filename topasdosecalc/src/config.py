@@ -302,10 +302,10 @@ class Configurator(tk.Frame):
                             self.mus.append(0)
                             self.total_mu = sum(self.total_mu)
 
+                            print(self.total_mu)
                             for index, value in enumerate(self.mus):
                                 if value < 0:
                                     self.mus[index] = 0
-
                             self.parent.output.add_text(
                                 f"Selected reference RTPLAN file: {file}"
                             )

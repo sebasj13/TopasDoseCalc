@@ -29,8 +29,6 @@ def merge_doses(root, frame, progressbar, button, output, frame2, log):
                 output.add_text("Invalid series description!")
                 return
 
-        array = initial_file.pixel_array * initial_file.DoseGridScaling * frame.mus[0]
-
         hist_cal = frame.histories
         try:
             hist_sum = frame.simulated_histories
@@ -45,6 +43,19 @@ def merge_doses(root, frame, progressbar, button, output, frame2, log):
 
         dose_cal = frame.avg_dose
         fx = frame.fractions
+
+        scale = (
+            initial_file.DoseGridScaling
+            * 1
+            / dose_cal
+            * frame.mus[0]
+            / 100
+            * hist_cal
+            / hist_sum
+            * fx
+        )
+
+        array = initial_file.pixel_array * scale
 
         button.grid_forget()
         progressbar.grid(row=2, column=0, columnspan=4, padx=(5, 5), pady=(5, 5))
@@ -100,9 +111,7 @@ def merge_doses(root, frame, progressbar, button, output, frame2, log):
         initial_file.DoseType = "PHYSICAL"
         initial_file.DoseSummationType = "PLAN"
         filename = frame.newseriesdescription + ".dcm"
-        initial_file.save_as(
-            f"{os.path.join(frame.folder_selected, filename)}"
-        )
+        initial_file.save_as(f"{os.path.join(frame.folder_selected, filename)}")
         output.add_text(
             f"Saving {frame.newseriesdescription}.dcm to {frame.folder_selected}"
         )

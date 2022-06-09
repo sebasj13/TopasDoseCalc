@@ -34,10 +34,6 @@ class Configurator(tk.Frame):
             highlightbackground="black", highlightthickness=2, highlightcolor="black"
         )
 
-        self.configure(
-            highlightbackground="black", highlightthickness=2, highlightcolor="black"
-        )
-
         buttonImage = Image.open(
             os.path.realpath(
                 os.path.join(
@@ -305,6 +301,8 @@ class Configurator(tk.Frame):
                             for index, value in enumerate(self.mus):
                                 if value < 0:
                                     self.mus[index] = 0
+
+                            print(list(map(lambda x: round(x, 3), self.mus)))
                             self.parent.output.add_text(
                                 f"Selected reference RTPLAN file: {file}"
                             )

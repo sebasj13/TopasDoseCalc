@@ -34,7 +34,6 @@ class TopasDoseCalc:
         y = screen_height // 2 - height // 2
         self.root.geometry(f"{width}x{height}+{x-25}+{y}")
         self.root.state("normal")
-        self.root.resizable(False, False)
         self.root.title("TopasDoseCalc")
         self.root.tk.call(
             "wm",

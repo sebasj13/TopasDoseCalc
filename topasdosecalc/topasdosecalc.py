@@ -77,7 +77,7 @@ class TopasDoseCalc:
             self.root,
             text="RUN!",
             command=lambda: threading.Thread(
-                target=merge_doses(
+                target=lambda: merge_doses(
                     self.root,
                     self.frame,
                     self.pb,

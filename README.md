@@ -6,7 +6,23 @@ This GUI allows the merging of multiple TOPAS DICOM simulations. This can be use
 
 ## Installation
 
+Install using pip:
 
+```console
+$ pip install topasdosecalc  
+```
+     
+Then, start the GUI by running:
+     
+```console
+$ python -m topasdosecalc
+```
+
+Or, if your Python is added to $PATH, simply run:
+
+```console
+$ topasdosecalc
+```
 
 ## Screenshots
 

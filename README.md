@@ -12,7 +12,7 @@ This GUI allows the merging of multiple TOPAS DICOM simulations. This can be use
 
 ## Dependencies
 
-Built using the beautiful Azure-ttk theme by @rdbende. Requires python3, numpy, matplotlib, pydicom and dicompyler-core.
+Built using the beautiful [Azure-ttk theme](https://github.com/rdbende/Azure-ttk-theme) by [@rdbende](https://github.com/rdbende). Requires python3, numpy, matplotlib, pydicom and dicompyler-core.
 
 ## Contact me!
 

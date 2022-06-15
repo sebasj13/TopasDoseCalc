@@ -15,7 +15,7 @@ class Output(tk.Frame):
 
         self.scrollbar = tk.Scrollbar(self)
         self.scrollbar.pack(side=tk.RIGHT, fill="y")
-        self.textbox = tk.Text(self, width=70, wrap=tk.WORD)
+        self.textbox = tk.Text(self, width=74, wrap=tk.WORD)
         self.textbox.pack(side=tk.TOP, fill="both", expand=True)
         self.textbox.config(yscrollcommand=self.scrollbar.set)
         self.textbox.configure(state="disabled")
@@ -35,5 +35,4 @@ class Output(tk.Frame):
         self.textbox.insert(tk.END, f"{current_time} - {text}\n", "bulleted")
         self.textbox.configure(state="disabled")
         self.textbox.see("end")
-
 

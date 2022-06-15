@@ -16,7 +16,6 @@ import tkinter.ttk as ttk
 from .src.config import Configurator
 from .src.merge_doses import merge_doses
 from .src.output import Output
-from .src.structure_selector import StructureSelector
 
 
 class TopasDoseCalc:
@@ -26,10 +25,10 @@ class TopasDoseCalc:
 
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
-        width = 812
+        width = 850
         height = 550
         self.root.minsize(width, height)
-
+        self.root.resizable(False, False)
         x = screen_width // 2 - width // 2
         y = screen_height // 2 - height // 2
         self.root.geometry(f"{width}x{height}+{x-25}+{y}")
@@ -61,16 +60,23 @@ class TopasDoseCalc:
                 )
             ),
         )
+        self.root.rowconfigure(0, weight=1)
+        self.root.rowconfigure(1, weight=1)
+        self.root.columnconfigure(0, weight=1)
+        self.root.rowconfigure(1, weight=1)
+        self.root.columnconfigure(1, weight=1)
+        self.root.rowconfigure(2, weight=1)
         self.frame = Configurator(self.root, self)
-        self.frame.grid(row=0, column=0, columnspan=5, padx=(5, 5), pady=(5, 0))
-        self.root.columnconfigure(4, weight=10)
-        self.frame2 = StructureSelector(self.root, self)
-        self.frame2.grid(row=1, column=4, padx=(5, 5), pady=(5, 5))
+        self.frame.grid(
+            row=0, column=0, columnspan=2, padx=(5, 5), pady=(5, 0), sticky=tk.W
+        )
+        self.frame2 = None
         self.output = Output(self.root)
         self.output.add_text("Initialized")
-        self.output.grid(row=1, column=0, columnspan=4, padx=(5, 5), pady=(5, 5))
+        self.output.grid(row=1, column=0, padx=(5, 5), pady=(5, 0), sticky=tk.NW)
+
         self.pb = ttk.Progressbar(
-            self.root, orient=tk.HORIZONTAL, length=400, mode="determinate"
+            self.root, orient=tk.HORIZONTAL, length=612, mode="determinate"
         )
         self.log = tk.Label(self.root, text="Loading DICOMs ...")
         self.run = ttk.Button(
@@ -78,6 +84,7 @@ class TopasDoseCalc:
             text="RUN!",
             command=lambda: threading.Thread(
                 target=lambda: merge_doses(
+                    self,
                     self.root,
                     self.frame,
                     self.pb,
@@ -88,7 +95,9 @@ class TopasDoseCalc:
                 )
             ).start(),
         )
-        self.run.grid(row=2, column=1, columnspan=2, padx=(5, 5), pady=(5, 5))
+        self.run.grid(
+            row=2, column=0, columnspan=2, padx=(5, 5), pady=(5, 5), sticky=tk.NSEW
+        )
 
     def mainloop(self):
         self.root.mainloop()

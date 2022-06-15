@@ -22,6 +22,35 @@ class StructureSelector(tk.Frame):
         self.configure(
             highlightbackground="black", highlightthickness=2, highlightcolor="black"
         )
+        self.canvas = tk.Canvas(self, width=196, height=388)
+        self.canvas.configure(highlightthickness=0)
+        self.canvas.pack(side=tk.LEFT)
+        self.scrollbar = tk.Scrollbar(self)
+        self.scrollbar.pack(side=tk.RIGHT, fill="y")
+        self.frame = tk.Frame(self.canvas)
+        self.frame.configure(highlightthickness=0)
+        self.canvas.create_window(
+            (4, 4), window=self.frame, anchor="nw", tags="self.frame"
+        )
+        self.frame.bind("<Configure>", self.onFrameConfigure)
+        self.scrollbar.configure(command=self.canvas.yview)
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+
+        self.bind("<Enter>", self._bound_to_mousewheel)
+        self.bind("<Leave>", self._unbound_to_mousewheel)
+
+    def _bound_to_mousewheel(self, event):
+        self.canvas.bind_all("<MouseWheel>", self._on_mousewheel)
+
+    def _unbound_to_mousewheel(self, event):
+        self.canvas.unbind_all("<MouseWheel>")
+
+    def _on_mousewheel(self, event):
+        self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+    def onFrameConfigure(self, event):
+        """Reset the scroll region to encompass the inner frame"""
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 
     def create_buttons(self):
 
@@ -40,7 +69,7 @@ class StructureSelector(tk.Frame):
         [variable.set(False) for variable in self.variables]
         self.buttons = [
             ttk.Checkbutton(
-                self, variable=self.variables[i], text=f"{self.structures[i][1]}"
+                self.frame, variable=self.variables[i], text=f"{self.structures[i][1]}"
             )
             for i in range(len(self.structures))
         ]
@@ -48,36 +77,22 @@ class StructureSelector(tk.Frame):
     def show_buttons(self):
 
         try:
-
             if self.parent.frame.dvh.get() == True:
 
                 [
-                    button.grid(sticky="W", padx=(2, 2), pady=(1, 1))
+                    button.pack(anchor=tk.W, padx=(2, 2), pady=(2, 2))
                     for button in self.buttons
                 ]
             else:
-                [button.grid_forget() for button in self.buttons]
+                [button.pack_forget() for button in self.buttons]
 
         except AttributeError:
-
             self.parent.output.add_text(
                 "(ERROR) No or invalid RTSTRUCT file in reference DICOM folder!"
             )
             self.parent.frame.dvh.set(False)
 
     def calculate_dvhs(self):
-
-        if self.parent.frame.dvh.get() == False:
-            self.parent.pb.grid_forget()
-            self.parent.log.grid_forget()
-            self.parent.log.configure(text="Merging Sims ...")
-            self.parent.pb["value"] = 0
-            self.parent.run.grid(
-                row=2, column=1, columnspan=2, padx=(5, 5), pady=(5, 5)
-            )
-            self.parent.output.add_text(f"(SUCCESS) Completed!")
-            return
-
         def calculate_TOPAS_DVHs():
             dvh = []
             filename = self.parent.frame.newseriesdescription + ".dcm"
@@ -136,7 +151,6 @@ class StructureSelector(tk.Frame):
         self.parent.log.configure(text="Creating DVHs ...")
         threading.Thread(calculate_TOPAS_DVHs()).start()
         threading.Thread(calculate_Reference_DVHs()).start()
-
         while True:
             try:
                 if self.ref_dvh:
@@ -159,11 +173,18 @@ class StructureSelector(tk.Frame):
 
                 break
 
-            except NameError:
+            except Exception:
                 pass
 
         plt.xlabel("Dose [%s]" % self.ref_dvh[0].dose_units)
         plt.ylabel("Volume [%s]" % self.ref_dvh[0].relative_volume.volume_units)
+        plt.xlim(
+            left=0,
+            right=max(
+                [max(self.ref_dvh[i].bincenters) for i in range(len(self.ref_dvh))]
+            )
+            * 1.5,
+        )
         plt.legend(loc="best")
         self.parent.output.add_text(
             f"Saving DVH.png to {self.parent.frame.folder_selected}"
@@ -174,9 +195,11 @@ class StructureSelector(tk.Frame):
 
         self.parent.pb.grid_forget()
         self.parent.log.grid_forget()
-        self.parent.log.configure(text="Merging Sims ...")
+        self.parent.log.configure(text="Merging simulations ...")
         self.parent.pb["value"] = 0
-        self.parent.run.grid(row=2, column=1, columnspan=2, padx=(5, 5), pady=(5, 5))
+        self.parent.run.grid(
+            row=2, column=0, columnspan=2, padx=(5, 5), pady=(5, 5), sticky=tk.NSEW
+        )
         self.parent.output.add_text(f"(SUCCESS) Completed!")
         return
 

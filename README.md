@@ -28,7 +28,18 @@ $ topasdosecalc
 
 ## Manual
 
+To use TopasDoseCalc, you need to supply at least five things:
 
+1. A directory containing your TOPAS DICOM simulation results, named after the control point (order is relevant!)
+2. A TOPAS dose profile reference simulation. The mean of the values close to the center axis is used as the scale
+3. A directory containing at least the relevant RTPLAN file. For DVH calculation, a RTDOSE and RTSTRUCT file is required
+4. The histories used for the simulation of each control point (individual, not total) 
+5. A new series description for the merged DICOM.
+
+If you supplied a RTDOSE and RTSTRUCT file you can select the structures for which to calculate a DVH. THis is good as an initial validation of the simulation results.
+
+<b>Note:</b>
+The program assumes 1 MU to be equivalent to 1cGy. If this doesn't apply to your case, scale the histories per simulation by the relevant amount.
 
 ## Screenshots
 

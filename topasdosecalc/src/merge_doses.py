@@ -6,11 +6,17 @@ import numpy as np
 from pydicom import dcmread, uid
 
 
-def merge_doses(root, frame, progressbar, button, output, frame2, log):
+def merge_doses(parent, root, frame, progressbar, button, output, frame2, log):
 
     output.add_text("Begun job...")
 
     try:
+
+        if len(frame.mus) != len(frame.simulations):
+            output.add_text(
+                "(ERROR) Number of control points does not match number of simulations!"
+            )
+            return
 
         initial_file = dcmread(frame.simulations[0])
 
@@ -58,12 +64,10 @@ def merge_doses(root, frame, progressbar, button, output, frame2, log):
         array = initial_file.pixel_array * scale
 
         button.grid_forget()
-        progressbar.grid(row=2, column=0, columnspan=4, padx=(5, 5), pady=(5, 5))
-        log.grid(row=2, column=4, padx=(5, 5), pady=(5, 5))
+        progressbar.grid(row=2, column=0, padx=(5, 5), pady=(5, 5))
+        log.grid(row=2, column=1, padx=(5, 5), pady=(5, 5))
 
         progressbar["value"] += 100 / len(frame.simulations)
-
-        threading.Thread(target=lambda: frame2.calculate_dvhs()).start()
 
         def run_merge(frame, array):
             for i in range(1, len(frame.simulations)):
@@ -119,6 +123,19 @@ def merge_doses(root, frame, progressbar, button, output, frame2, log):
         progressbar["value"] = 0
 
         output.add_text("(SUCCESS) All simulations succesfully scaled and merged!")
+        if parent.frame2 != None:
+            threading.Thread(target=parent.frame2.calculate_dvhs).start()
+
+        else:
+            progressbar.grid_forget()
+            log.grid_forget()
+            log.configure(text="Merging simulations ...")
+            progressbar["value"] = 0
+            button.grid(
+                row=2, column=0, columnspan=2, padx=(5, 5), pady=(5, 5), sticky="nsew"
+            )
+            output.add_text(f"(SUCCESS) Completed!")
+            return
 
     except Exception as e:
         print(e)

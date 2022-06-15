@@ -12,6 +12,8 @@ from natsort import natsorted, ns
 from PIL import Image, ImageTk
 from pydicom import dcmread
 
+from .structure_selector import StructureSelector
+
 
 class Configurator(tk.Frame):
     def __init__(self, parenttk, parent):
@@ -29,6 +31,7 @@ class Configurator(tk.Frame):
         self.columnconfigure(1, weight=1)
         self.columnconfigure(2, weight=1)
         self.columnconfigure(3, weight=1)
+        self.columnconfigure(4, weight=1)
 
         self.configure(
             highlightbackground="black", highlightthickness=2, highlightcolor="black"
@@ -82,11 +85,11 @@ class Configurator(tk.Frame):
         )
         self.refbutton.grid(column=1, row=1, rowspan=4)
 
-        self.refdcmtext = tk.Canvas(self, width=200, height=20)
+        self.refdcmtext = tk.Canvas(self, width=250, height=20)
         self.refdcmtext.create_text(
-            100, 10, anchor=tk.CENTER, text="3. Select CT, RTPLAN and RTSTRUCT"
+            125, 10, anchor=tk.CENTER, text="3. Select RTPLAN, RTDOSE, and RTSTRUCT"
         )
-        self.refdcmtext.grid(column=2, row=0)  # , rowspan=2)
+        self.refdcmtext.grid(column=2, row=0)  # , rowspa)
         dcmImage = Image.open(
             os.path.realpath(
                 os.path.join(
@@ -99,7 +102,7 @@ class Configurator(tk.Frame):
         self.dcmPhoto = ImageTk.PhotoImage(dcmImage)
         self.refbutton = ttk.Button(
             self,
-            text="CT, RTPLAN, RTSTRUCT",
+            text="RTPLAN, RTDOSE, RTSTRUCT",
             image=self.dcmPhoto,
             compound=tk.TOP,
             command=lambda: threading.Thread(target=self.pick_ref_dicom_folder).start(),
@@ -122,20 +125,29 @@ class Configurator(tk.Frame):
         self.dvh = tk.BooleanVar()
         self.dvh.set(False)
         self.dvhselect = ttk.Checkbutton(
-            self,
-            text="Calculate DVHs ?",
-            command=lambda: threading.Thread(
-                target=self.parent.frame2.show_buttons()
-            ).start(),
-            variable=self.dvh,
+            self, text="Calculate DVHs ?", command=self.show_buttons, variable=self.dvh
         )
         self.dvhselect.grid(column=3, row=4)
 
-    def select_structures(self):
-        if self.dvh.get() == True:
-            print(True)
-        else:
-            print(False)
+    def show_buttons(self):
+        try:
+            if self.dvh.get() == True:
+
+                self.parent.frame2 = StructureSelector(self.parenttk, self.parent)
+                self.parent.frame2.create_buttons()
+                self.parent.frame2.show_buttons()
+                self.parent.frame2.grid(
+                    row=1, column=1, padx=(0, 5), pady=(5, 0), sticky=tk.NW
+                )
+
+            else:
+                self.parent.frame2.grid_forget()
+                self.parent.frame2 = None
+        except AttributeError:
+            self.parent.output.add_text(
+                "(ERROR) No or invalid DICOM directory selected!"
+            )
+            self.dvh.set(False)
 
     def pick_sim_folder(self):
         self.folder_selected = fd.askdirectory()
@@ -149,9 +161,9 @@ class Configurator(tk.Frame):
             self.simulations = []
 
             self.parent.run.grid_forget()
-            self.parent.pb.grid(row=2, column=0, columnspan=4, padx=(5, 5), pady=(5, 5))
+            self.parent.pb.grid(row=2, column=0, padx=(5, 5), pady=(5, 5))
 
-            self.parent.log.grid(row=2, column=4, padx=(5, 5), pady=(5, 5))
+            self.parent.log.grid(row=2, column=1, padx=(5, 5), pady=(5, 5))
 
             for r, d, f in os.walk(self.folder_selected):
                 for file in f:
@@ -165,11 +177,11 @@ class Configurator(tk.Frame):
                             self.parent.pb["value"] += 100 / len(next(os.walk(r))[2])
 
             self.parent.log.grid_forget()
-            self.parent.log.configure(text="Merging sims ...")
+            self.parent.log.configure(text="Merging simulations ...")
             self.parent.pb.grid_forget()
             self.parent.pb.config(mode="determinate")
             self.parent.run.grid(
-                row=2, column=1, columnspan=2, padx=(5, 5), pady=(5, 5)
+                row=2, column=0, columnspan=2, padx=(5, 5), pady=(5, 5), sticky=tk.NSEW
             )
             self.parent.pb["value"] = 0
 
@@ -255,61 +267,61 @@ class Configurator(tk.Frame):
             CTs = 0
             for r, d, f in os.walk(self.dcm_folder_selected):
                 for file in f:
-                    with dcmread(os.path.join(r, file)) as dcmfile:
-                        if dcmfile.Modality == "CT":
-                            CTs += 1
-                        elif dcmfile.Modality == "RTDOSE":
-                            self.refdose = os.path.join(r, file)
-                            self.parent.output.add_text(
-                                f"Selected reference RTDOSE file: {file}"
-                            )
-                        elif dcmfile.Modality == "RTSTRUCT":
-                            self.rtstruct = os.path.join(r, file)
-                            threading.Thread(
-                                target=lambda: self.parent.frame2.create_buttons()
-                            ).start()
-                            self.parent.output.add_text(
-                                f"Selected reference RTSTRUCT file: {file}"
-                            )
-                        elif dcmfile.Modality == "RTPLAN":
-                            self.rtplan = os.path.join(r, file)
-                            self.fractions = 0
-                            for frac in dcmfile.FractionGroupSequence:
-                                self.fractions += int(frac.NumberOfFractionsPlanned)
-                            self.total_mu = []
-                            for mu in dcmfile.FractionGroupSequence:
-                                for beam in mu.ReferencedBeamSequence:
-                                    self.total_mu += [float(beam.BeamMeterset)]
-                            self.mus = []
-                            for j in range(len(dcmfile.BeamSequence)):
-                                for i in range(
-                                    len(dcmfile.BeamSequence[j].ControlPointSequence)
-                                ):
-                                    self.mus += [
-                                        float(
-                                            dcmfile.BeamSequence[j]
-                                            .ControlPointSequence[i]
-                                            .CumulativeMetersetWeight
+                    if ".dcm" in file:
+                        with dcmread(os.path.join(r, file)) as dcmfile:
+                            if dcmfile.Modality == "CT":
+                                CTs += 1
+                            elif dcmfile.Modality == "RTDOSE":
+                                self.refdose = os.path.join(r, file)
+                                self.parent.output.add_text(
+                                    f"Selected reference RTDOSE file: {file}"
+                                )
+                            elif dcmfile.Modality == "RTSTRUCT":
+                                self.rtstruct = os.path.join(r, file)
+                                self.parent.output.add_text(
+                                    f"Selected reference RTSTRUCT file: {file}"
+                                )
+                            elif dcmfile.Modality == "RTPLAN":
+                                self.rtplan = os.path.join(r, file)
+                                self.fractions = 0
+                                for frac in dcmfile.FractionGroupSequence:
+                                    self.fractions += int(frac.NumberOfFractionsPlanned)
+                                self.total_mu = []
+                                for mu in dcmfile.FractionGroupSequence:
+                                    for beam in mu.ReferencedBeamSequence:
+                                        self.total_mu += [float(beam.BeamMeterset)]
+                                self.mus = []
+                                for j in range(len(dcmfile.BeamSequence)):
+                                    for i in range(
+                                        len(
+                                            dcmfile.BeamSequence[j].ControlPointSequence
                                         )
-                                        * self.total_mu[j]
-                                    ]
+                                    ):
+                                        self.mus += [
+                                            float(
+                                                dcmfile.BeamSequence[j]
+                                                .ControlPointSequence[i]
+                                                .CumulativeMetersetWeight
+                                            )
+                                            * self.total_mu[j]
+                                        ]
 
-                            self.mus = np.diff(self.mus).tolist()
-                            self.mus.append(0)
-                            self.total_mu = sum(self.total_mu)
-                            for index, value in enumerate(self.mus):
-                                if value < 0:
-                                    self.mus[index] = 0
+                                self.mus = np.diff(self.mus).tolist()
+                                self.mus.append(0)
+                                self.total_mu = sum(self.total_mu)
+                                for index, value in enumerate(self.mus):
+                                    if value < 0:
+                                        self.mus[index] = 0
 
-                            self.parent.output.add_text(
-                                f"Selected reference RTPLAN file: {file}"
-                            )
-                            self.parent.output.add_text(
-                                f"Number of planned fractions: {self.fractions}"
-                            )
-                            self.parent.output.add_text(
-                                f"Total MUs/fraction: {self.total_mu}"
-                            )
+                                self.parent.output.add_text(
+                                    f"Selected reference RTPLAN file: {file}"
+                                )
+                                self.parent.output.add_text(
+                                    f"Number of planned fractions: {self.fractions}"
+                                )
+                                self.parent.output.add_text(
+                                    f"Total MUs/fraction: {self.total_mu:5.1f}"
+                                )
 
         else:
             self.parent.output.add_text("Reference DICOM folder selection cancelled!")

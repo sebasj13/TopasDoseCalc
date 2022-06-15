@@ -1,5 +1,7 @@
 # <p align="center">TopasDoseCalc</p>
 
+![TopasDoseCalc Logo](/topasdosecalc/icon.png?raw=true)
+
 ## <p align="center">A GUI to merge and scale split-up TOPAS simulations to absolute doses and calculate DVHs</p>
 
 This GUI allows the merging of multiple TOPAS DICOM simulations. This can be useful when a patient plan has been split up into individual simulations of the control points. The merged simulation can then be scaled using a reference calibration simulation and data from the RTPLAN. Finally, DVHs can be automatically created when supplying a RTSTRUCT file.

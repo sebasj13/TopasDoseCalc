@@ -4,7 +4,9 @@
 
 This GUI allows the merging of multiple TOPAS DICOM simulations. This can be useful when a patient plan has been split up into individual simulations of the control points. The merged simulation can then be scaled using a reference calibration simulation and data from the RTPLAN. Finally, DVHs can be automatically created when supplying a RTSTRUCT file.
 
-## <p align="center">!!! Disclaimer - WORK IN PROGRESS !!!</p>
+## Installation
+
+
 
 ## Screenshots
 

@@ -292,12 +292,13 @@ class Configurator(tk.Frame):
                                         self.total_mu += [float(beam.BeamMeterset)]
                                 self.mus = []
                                 for j in range(len(dcmfile.BeamSequence)):
+                                    temp = []
                                     for i in range(
                                         len(
                                             dcmfile.BeamSequence[j].ControlPointSequence
                                         )
                                     ):
-                                        self.mus += [
+                                        temp += [
                                             float(
                                                 dcmfile.BeamSequence[j]
                                                 .ControlPointSequence[i]
@@ -305,9 +306,9 @@ class Configurator(tk.Frame):
                                             )
                                             * self.total_mu[j]
                                         ]
-
-                                self.mus = np.diff(self.mus).tolist()
-                                self.mus.append(0)
+                                    temp = np.diff(temp).tolist()
+                                    temp.append(0)
+                                    self.mus += temp
                                 self.total_mu = sum(self.total_mu)
                                 for index, value in enumerate(self.mus):
                                     if value < 0:

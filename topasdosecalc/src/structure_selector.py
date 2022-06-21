@@ -178,13 +178,13 @@ class StructureSelector(tk.Frame):
 
         plt.xlabel("Dose [%s]" % self.ref_dvh[0].dose_units)
         plt.ylabel("Volume [%s]" % self.ref_dvh[0].relative_volume.volume_units)
-        plt.xlim(
-            left=0,
-            right=max(
-                [max(self.ref_dvh[i].bincenters) for i in range(len(self.ref_dvh))]
-            )
-            * 1.5,
-        )
+        # plt.xlim(
+        #    left=0,
+        #    right=max(
+        #        [max(self.ref_dvh[i].bincenters) for i in range(len(self.ref_dvh))]
+        #    )
+        #    * 1.5,
+        # )
         plt.legend(loc="best")
         self.parent.output.add_text(
             f"Saving DVH.png to {self.parent.frame.folder_selected}"

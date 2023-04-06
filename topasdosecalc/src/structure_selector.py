@@ -2,7 +2,7 @@ import os
 import threading
 import time
 import tkinter as tk
-import tkinter.ttk as ttk
+import customtkinter as ctk
 
 import dicompylercore.dvhcalc as dv
 import matplotlib as mpl
@@ -12,17 +12,17 @@ import matplotlib.pyplot as plt
 from pydicom import dcmread
 
 
-class StructureSelector(tk.Frame):
+class StructureSelector(ctk.CTkFrame):
     def __init__(self, parenttk, parent):
 
-        tk.Frame.__init__(self, parenttk)
+        super().__init__(self, parenttk)
         self.parenttk = parenttk
         self.parent = parent
 
         self.configure(
             highlightbackground="black", highlightthickness=2, highlightcolor="black"
         )
-        self.canvas = tk.Canvas(self, width=196, height=388)
+        self.canvas = ctk.CTkCanvas(self, width=196, height=388)
         self.canvas.configure(highlightthickness=0)
         self.canvas.pack(side=tk.LEFT)
         self.scrollbar = tk.Scrollbar(self)
@@ -65,10 +65,10 @@ class StructureSelector(tk.Frame):
                 ]
         self.structures.sort(key=lambda y: y[0])
 
-        self.variables = [tk.BooleanVar() for i in range(len(self.structures))]
+        self.variables = [ctk.BooleanVar() for i in range(len(self.structures))]
         [variable.set(False) for variable in self.variables]
         self.buttons = [
-            ttk.Checkbutton(
+            ctk.CTkCheckBox(
                 self.frame, variable=self.variables[i], text=f"{self.structures[i][1]}"
             )
             for i in range(len(self.structures))
@@ -176,15 +176,15 @@ class StructureSelector(tk.Frame):
             except Exception:
                 pass
 
-        plt.xlabel("Dose [%s]" % self.ref_dvh[0].dose_units)
-        plt.ylabel("Volume [%s]" % self.ref_dvh[0].relative_volume.volume_units)
-        # plt.xlim(
-        #    left=0,
-        #    right=max(
-        #        [max(self.ref_dvh[i].bincenters) for i in range(len(self.ref_dvh))]
-        #    )
-        #    * 1.5,
-        # )
+        plt.xlabel("Dosis [%s]" % self.ref_dvh[0].dose_units)
+        plt.ylabel("Volumen [%s]" % self.ref_dvh[0].relative_volume.volume_units)
+        plt.xlim(
+            left=0,
+            right=max(
+                [max(self.ref_dvh[i].bincenters) for i in range(len(self.ref_dvh))]
+            )
+            * 1.5,
+        )
         plt.legend(loc="best")
         self.parent.output.add_text(
             f"Saving DVH.png to {self.parent.frame.folder_selected}"

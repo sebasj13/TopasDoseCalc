@@ -85,6 +85,8 @@ def merge_doses(parent, root, frame, progressbar, button, output, frame2, log):
                     )
                     array += dicom.pixel_array * scale
 
+                    print(frame.mus[i])
+
                 progressbar["value"] += 100 / len(frame.simulations)
                 root.update_idletasks()
 

@@ -1,4 +1,5 @@
 import os
+import customtkinter as ctk
 import threading
 import tkinter as tk
 import tkinter.ttk as ttk
@@ -15,10 +16,10 @@ from pydicom import dcmread
 from .structure_selector import StructureSelector
 
 
-class Configurator(tk.Frame):
+class Configurator(ctk.CTkFrame):
     def __init__(self, parenttk, parent):
 
-        tk.Frame.__init__(self, parenttk)
+        ctk.CTkFrame.__init__(self, parenttk)
         self.parent = parent
         self.parenttk = parenttk
 
@@ -33,9 +34,9 @@ class Configurator(tk.Frame):
         self.columnconfigure(3, weight=1)
         self.columnconfigure(4, weight=1)
 
-        self.configure(
-            highlightbackground="black", highlightthickness=2, highlightcolor="black"
-        )
+        #self.configure(
+        #    highlightbackground="black", highlightthickness=2, highlightcolor="black"
+        #)
 
         buttonImage = Image.open(
             os.path.realpath(
@@ -46,13 +47,13 @@ class Configurator(tk.Frame):
                 )
             )
         )
-        self.foldertext = tk.Canvas(self, width=200, height=20)
+        self.foldertext = ctk.CTkCanvas(self, width=200, height=20)
         self.foldertext.create_text(
             100, 10, anchor=tk.CENTER, text="1. Select TOPAS simulation directory"
         )
         self.foldertext.grid(column=0, row=0)  # , rowspan=2)
-        self.buttonPhoto = ImageTk.PhotoImage(buttonImage)
-        self.dcmfolderbutton = ttk.Button(
+        self.buttonPhoto = ctk.CTkImage(buttonImage)
+        self.dcmfolderbutton = ctk.CTkButton(
             self,
             text="TOPAS simulation results",
             image=self.buttonPhoto,
@@ -75,8 +76,8 @@ class Configurator(tk.Frame):
                 )
             )
         )
-        self.topasPhoto = ImageTk.PhotoImage(topasImage)
-        self.refbutton = ttk.Button(
+        self.topasPhoto = ctk.CTkImage(topasImage)
+        self.refbutton = ctk.CTkButton(
             self,
             text="TOPAS reference simulation",
             image=self.topasPhoto,
@@ -85,7 +86,7 @@ class Configurator(tk.Frame):
         )
         self.refbutton.grid(column=1, row=1, rowspan=4)
 
-        self.refdcmtext = tk.Canvas(self, width=250, height=20)
+        self.refdcmtext = ctk.CTkCanvas(self, width=250, height=20)
         self.refdcmtext.create_text(
             125, 10, anchor=tk.CENTER, text="3. Select RTPLAN, RTDOSE, and RTSTRUCT"
         )
@@ -99,8 +100,8 @@ class Configurator(tk.Frame):
                 )
             )
         )
-        self.dcmPhoto = ImageTk.PhotoImage(dcmImage)
-        self.refbutton = ttk.Button(
+        self.dcmPhoto = ctk.CTkImage(dcmImage)
+        self.refbutton = ctk.CTkButton(
             self,
             text="RTPLAN, RTDOSE, RTSTRUCT",
             image=self.dcmPhoto,
@@ -109,22 +110,22 @@ class Configurator(tk.Frame):
         )
         self.refbutton.grid(column=2, row=1, rowspan=4)
 
-        self.simhistories = tk.Label(self, text="4. Histories per simulation:")
-        self.simhistoriesentry = tk.Entry(self, width=30)
+        self.simhistories = ctk.CTkLabel(self, text="4. Histories per simulation:")
+        self.simhistoriesentry = ctk.CTkEntry(self, width=30)
 
         self.simhistories.grid(column=3, row=0)
         self.simhistoriesentry.grid(column=3, row=1, padx=(0, 5))
 
-        self.seriesdescription = tk.Label(self, text="5. New DICOM series description:")
-        self.seriesdescriptionentry = tk.Entry(self, width=30)
+        self.seriesdescription = ctk.CTkLabel(self, text="5. New DICOM series description:")
+        self.seriesdescriptionentry = ctk.CTkEntry(self, width=30)
 
         self.seriesdescription.grid(column=3, row=2)
         self.seriesdescriptionentry.grid(column=3, row=3, padx=(0, 5))
         self.parenttk.bind("<Return>", self.pick_simulated_histories)
 
-        self.dvh = tk.BooleanVar()
+        self.dvh = ctk.BooleanVar()
         self.dvh.set(False)
-        self.dvhselect = ttk.Checkbutton(
+        self.dvhselect = ctk.CTkCheckBox(
             self, text="Calculate DVHs ?", command=self.show_buttons, variable=self.dvh
         )
         self.dvhselect.grid(column=3, row=4)

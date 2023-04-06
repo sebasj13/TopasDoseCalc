@@ -1,112 +1,60 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Sat May 28 10:54:31 2022
-
-@author: Sebastian Schäfer
-@institution: Martin-Luther-Universität Halle-Wittenberg
-@email: sebastian.schaefer@student.uni-halle.de
-"""
-
+import customtkinter as ctk
 import os
-import threading
-import tkinter as tk
-import tkinter.ttk as ttk
+import sys
+from datetime import datetime
 
-from .src.config import Configurator
-from .src.merge_doses import merge_doses
-from .src.output import Output
-
-
-class TopasDoseCalc:
+class TopasDoseCalc(ctk.CTk):
     def __init__(self):
+        super().__init__()
+        ctk.set_appearance_mode("dark")
+        ctk.set_default_color_theme("blue")
+        
+        self.appname = "TopasDoseCalc"
+        self.version = "2.0.0"
+        self.author = "Sebastian Schäfer"
+        self.title(f"{self.appname} - v.{self.version}")
+        
+        self.minsize(width=960, height=500)
+        self.geometry("960x500")
+        self.resizable(False, False)
+        self.iconpath = self.resource_path(os.path.join("src", "icon.ico"))
+        self.iconbitmap(self.iconpath)
+        
+        self.rowconfigure(0, minsize=244)
+        self.rowconfigure(1, minsize=244)
+        self.rowconfigure(2, minsize=12)
+        self.columnconfigure(0, weight=1)
+        
+        self.options = ctk.CTkFrame(self, border_color="black", border_width=1)
+        self.options.grid(row=0, sticky="nsew", padx=2, pady=2)
+        self.logger = ctk.CTkTextbox(self, activate_scrollbars=True, state="disabled", border_color="black", border_width=1, font=("Bahnschrift",14))
+        self.init_logger()
+        self.logger.grid(row=1, sticky="nsew", padx=2)
+        self.pbvar=ctk.DoubleVar(value=0)
+        self.pb = ctk.CTkProgressBar(self, progress_color="green", corner_radius=0, variable = self.pbvar)
+        self.pb.grid(row=2, sticky="nsew", pady=(2,0))
 
-        self.root = tk.Tk()
-
-        screen_width = self.root.winfo_screenwidth()
-        screen_height = self.root.winfo_screenheight()
-        width = 850
-        height = 550
-        self.root.minsize(width, height)
-        self.root.resizable(False, False)
-        x = screen_width // 2 - width // 2
-        y = screen_height // 2 - height // 2
-        self.root.geometry(f"{width}x{height}+{x-25}+{y}")
-        self.root.state("normal")
-        self.root.title("TopasDoseCalc")
-        self.root.tk.call(
-            "wm",
-            "iconphoto",
-            self.root._w,
-            tk.PhotoImage(
-                file=os.path.realpath(
-                    os.path.join(
-                        os.path.dirname(os.path.realpath(__file__)), "src", "icon.png",
-                    )
-                )
-            ),
-        ),
-
-        ttk.Style(self.root)
-        self.root.tk.call(
-            "source",
-            str(
-                os.path.join(
-                    os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
-                    "topasdosecalc",
-                    "src",
-                    "Azure-ttk-theme",
-                    "azure.tcl",
-                )
-            ),
-        )
-        self.root.rowconfigure(0, weight=1)
-        self.root.rowconfigure(1, weight=1)
-        self.root.columnconfigure(0, weight=1)
-        self.root.rowconfigure(1, weight=1)
-        self.root.columnconfigure(1, weight=1)
-        self.root.rowconfigure(2, weight=1)
-        self.frame = Configurator(self.root, self)
-        self.frame.grid(
-            row=0, column=0, columnspan=2, padx=(5, 5), pady=(5, 0), sticky=tk.W
-        )
-        self.frame2 = None
-        self.output = Output(self.root)
-        self.output.add_text("Initialized")
-        self.output.grid(row=1, column=0, padx=(5, 5), pady=(5, 0), sticky=tk.NW)
-
-        self.pb = ttk.Progressbar(
-            self.root, orient=tk.HORIZONTAL, length=612, mode="determinate"
-        )
-        self.log = tk.Label(self.root, text="Loading DICOMs ...")
-        self.run = ttk.Button(
-            self.root,
-            text="RUN!",
-            command=lambda: threading.Thread(
-                target=lambda: merge_doses(
-                    self,
-                    self.root,
-                    self.frame,
-                    self.pb,
-                    self.run,
-                    self.output,
-                    self.frame2,
-                    self.log,
-                )
-            ).start(),
-        )
-        self.run.grid(
-            row=2, column=0, columnspan=2, padx=(5, 5), pady=(5, 5), sticky=tk.NSEW
-        )
-
-    def mainloop(self):
-        self.root.mainloop()
-
-
-def topasdosecalc():
-    TDC = TopasDoseCalc()
-    TDC.mainloop()
-
-
+        self.mainloop()
+            
+    def resource_path(self, relative_path):
+        """ Get absolute path to resource, works for dev and for PyInstaller """
+        if hasattr(sys, '_MEIPASS'):
+            return os.path.join(sys._MEIPASS, "topasdosecalc", relative_path)
+        return os.path.join(os.path.dirname(os.path.abspath(__file__)), relative_path)
+    
+    def init_logger(self):
+        self.log(f"{self.appname} v.{self.version} - by {self.author}", logtime = False)
+        self.log("_______________________________________________\n", logtime = False)
+        self.log("Initialized")
+    
+    def log(self, message, logtime=True):
+        self.logger.configure(state="normal")
+        time = ""
+        if logtime:
+            time = datetime.now().strftime("%H:%M:%S") + " | "
+        self.logger.insert("end", f"{time}{message}\n")
+        self.logger.configure(state="disabled")
+        self.logger.see("end")                       
+        
 if __name__ == "__main__":
-    topasdosecalc()
+    TopasDoseCalc()

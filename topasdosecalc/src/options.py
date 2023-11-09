@@ -184,7 +184,7 @@ class Options(ctk.CTkTabview):
                 if file.endswith(".dcm"):
                     files.append(os.path.join(self.folder.get(), file))  
                 elif file.endswith(".csv"):
-                    iso_files.append(os.path.join(root, file))
+                    iso_files.append(os.path.join(self.folder.get(), file))
                     
         if len(files) == 0:
             self.log("No dose files found in selected folder")
@@ -253,12 +253,12 @@ class Options(ctk.CTkTabview):
             for i,file in enumerate(natsorted(iso_files)):
                 self.parent.pbvar.set((i+1)/len(iso_files))
                 scale =  float(self.reference_scale_entry.get()) * (float(self.reference_histories_entry.get()) / float(self.histories_entry.get())) * float(self.sequence.flatten()[i]) / float(self.reference_mus_entry.get())
-                if data == []:
+                if type(data) == list:
                     data = self.read_iso_csv(file, scale)
                 else:
                     data =  self.add_iso_data(data, self.read_iso_csv(file, scale))
             with open(os.path.join(self.folder.get(), f"{self.descriptionentry.get().strip()}_iso.csv"), "w") as file:
-                np.savetxt(file, data, delimiter=",", header="Sum, Standard_Deviation, Histories_with_Scorer_Active, Count_in_Bin, Max", comments="") 
+                np.savetxt(file, data, delimiter=",", header="Sum\tStandard_Deviation\tHistories_with_Scorer_Active\tCount_in_Bin\tMax", comments="", fmt='%1.4f\t%1.4f\t%1.0f\t%1.0f\t%1.4f') 
             self.log(f"Saved merged isocenter file to {os.path.join(self.folder.get(), f'{self.descriptionentry.get().strip()}_iso.csv')}")
             self.parent.pbvar.set(0)
             
@@ -391,7 +391,7 @@ class Options(ctk.CTkTabview):
             self.structures.show_buttons()
     
     def load_dose(self):
-        self.rtdose = askopenfilename(filetypes=[("RTSTRUCT", "*.dcm")])
+        self.rtdose = askopenfilename(filetypes=[("RTDOSE", "*.dcm")])
         if self.rtdose != "":
             self.log(f"Loading reference dose from {self.rtstruct}")
         

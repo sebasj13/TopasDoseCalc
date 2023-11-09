@@ -125,7 +125,6 @@ class StructureSelector(ctk.CTkScrollableFrame):
                     ))
             self.ref_dvh = dvh
 
-        self.parent.log.configure(text="Creating DVHs ...")
         threading.Thread(calculate_TOPAS_DVHs()).start()
         threading.Thread(calculate_Reference_DVHs()).start()
         while True:

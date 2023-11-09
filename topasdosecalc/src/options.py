@@ -269,7 +269,7 @@ class Options(ctk.CTkTabview):
                 max_dose += np.array([ max([data[j][i][0] for j in range(len(data))])  ]).reshape(-1,1)
             data  = np.array([dose,std_dev,n_hist,count_in_bin, max_dose])     
             with open(os.path.join(self.folder.get(), f"{self.descriptionentry.get().strip()}_iso.csv"), "w") as file:
-                np.savetxt(file, data, delimiter=",", header="Sum\tStandard_Deviation\tHistories_with_Scorer_Active\tCount_in_Bin\tMax", comments="", fmt='%1.4f\t%1.4f\t%1.0f\t%1.0f\t%1.4f') 
+                np.savetxt(file, data, delimiter=",", header="Sum\tStandard_Deviation\tHistories_with_Scorer_Active\tCount_in_Bin\tMax", comments="", fmt='%1.4e\t%1.4e\t%1.0f\t%1.0f\t%1.4e') 
             self.log(f"Saved merged isocenter file to {os.path.join(self.folder.get(), f'{self.descriptionentry.get().strip()}_iso.csv')}")
             self.parent.pbvar.set(0)
             

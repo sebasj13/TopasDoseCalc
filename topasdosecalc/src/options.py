@@ -268,10 +268,6 @@ class Options(ctk.CTkTabview):
                 count_in_bin +=  np.array([sum([data[j][i][3] for j in range(len(data))])  ]).reshape(-1,1)
                 max_dose += np.array([ max([data[j][i][0] for j in range(len(data))])  ]).reshape(-1,1)
             data  = np.array([dose,std_dev,n_hist,count_in_bin, max_dose])     
-                if type(data) == list:
-                    data = self.read_iso_csv(file, scale)
-                else:
-                    data =  self.add_iso_data(data, self.read_iso_csv(file, scale))
             with open(os.path.join(self.folder.get(), f"{self.descriptionentry.get().strip()}_iso.csv"), "w") as file:
                 np.savetxt(file, data, delimiter=",", header="Sum\tStandard_Deviation\tHistories_with_Scorer_Active\tCount_in_Bin\tMax", comments="", fmt='%1.4f\t%1.4f\t%1.0f\t%1.0f\t%1.4f') 
             self.log(f"Saved merged isocenter file to {os.path.join(self.folder.get(), f'{self.descriptionentry.get().strip()}_iso.csv')}")

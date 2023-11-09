@@ -253,10 +253,21 @@ class Options(ctk.CTkTabview):
             for i,file in enumerate(natsorted(iso_files)):
                 self.parent.pbvar.set((i+1)/len(iso_files))
                 scale =  float(self.reference_scale_entry.get()) * (float(self.reference_histories_entry.get()) / float(self.histories_entry.get())) * float(self.sequence.flatten()[i]) / float(self.reference_mus_entry.get())
-                if data == []:
-                    data = self.read_iso_csv(file, scale)
-                else:
-                    data =  self.add_iso_data(data, self.read_iso_csv(file, scale))
+                data += [self.read_iso_csv(file, scale)]
+            self.parent.pbvar.set(0)
+            dose = []
+            std_dev = []
+            n_hist = []
+            count_in_bin = []
+            max_dose = []
+            for i in range(len(data[0])):
+                self.parent.pbvar.set((i+1)/len(data[0]))
+                dose += np.array([ sum([data[j][i][0] for j in range(len(data))])  ]).reshape(-1,1)
+                std_dev += np.array([ np.sqrt(sum([data[j][i][1]**2 for j in range(len(data))])) ]).reshape(-1,1)
+                n_hist += np.array([ sum([data[j][i][2] for j in range(len(data))])  ]).reshape(-1,1)
+                count_in_bin +=  np.array([sum([data[j][i][3] for j in range(len(data))])  ]).reshape(-1,1)
+                max_dose += np.array([ max([data[j][i][0] for j in range(len(data))])  ]).reshape(-1,1)
+            data  = np.array([dose,std_dev,n_hist,count_in_bin, max_dose])     
             with open(os.path.join(self.folder.get(), f"{self.descriptionentry.get().strip()}_iso.csv"), "w") as file:
                 np.savetxt(file, data, delimiter=",", header="Sum, Standard_Deviation, Histories_with_Scorer_Active, Count_in_Bin, Max", comments="") 
             self.log(f"Saved merged isocenter file to {os.path.join(self.folder.get(), f'{self.descriptionentry.get().strip()}_iso.csv')}")
@@ -281,7 +292,7 @@ class Options(ctk.CTkTabview):
     def add_iso_data(self, data, data2):
         for i in range(len(data)):
             data[i][0] += data2[i][0]
-            data[i][1] += data2[i][1]
+            data[i][1] = np.sqrt( data[i][1]**2 + data2[i][1]*+2)
             data[i][2] += data2[i][2]
             data[i][3] += data2[i][3]
             data[i][4] = max([data[i][4], data2[i][4]])

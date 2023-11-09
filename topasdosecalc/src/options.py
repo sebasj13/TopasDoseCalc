@@ -263,7 +263,7 @@ class Options(ctk.CTkTabview):
             for i in range(len(data[0])):
                 self.parent.pbvar.set((i+1)/len(data[0]))
                 dose += [ sum([data[j][i][0] for j in range(len(data))])  ]
-                std_dev += [ np.sqrt(sum([data[j][i][1]**2 for j in range(len(data))])) ]
+                std_dev += [ np.sqrt(sum([data[j][i][1]**2 for j in range(len(data))])) * 1/(np.sqrt(len(data)))]
                 n_hist += [ sum([data[j][i][2] for j in range(len(data))])  ]
                 count_in_bin +=  [sum([data[j][i][3] for j in range(len(data))])  ]
                 max_dose += [ max([data[j][i][0] for j in range(len(data))])  ]
@@ -342,20 +342,23 @@ class Options(ctk.CTkTabview):
             self.log(f"Loading MU sequence from {path}")
             sequence = []
             ds = dcmread(path)
+            self.dose = 0
             for i in range(len(ds.BeamSequence)):
                 temp = [0]
                 if len(ds.BeamSequence[i].ControlPointSequence) == 2:
                     mus = ds.FractionGroupSequence[0].ReferencedBeamSequence[i].BeamMeterset
+                    self.dose += ds.FractionGroupSequence[0].ReferencedBeamSequence[i].BeamDose
                     temp.append(ds.BeamSequence[i].ControlPointSequence[1].CumulativeMetersetWeight * mus)
                 else:
+                    self.dose += ds.FractionGroupSequence[0].ReferencedBeamSequence[i].BeamDose
                     for j in range(len(ds.BeamSequence[i].ControlPointSequence)):
                         mus = ds.FractionGroupSequence[0].ReferencedBeamSequence[i].BeamMeterset
                         temp.append(ds.BeamSequence[i].ControlPointSequence[j].CumulativeMetersetWeight * mus)
                 sequence.append(np.diff(temp))
             sequence = np.array(sequence)
-            self.fractions = ds.FractionGroupSequence[0].NumberOfFractionsPlanned
             self.sequence = sequence
-            self.log(f"Number of fractions: {self.fractions}")
+            self.fractions = ds.FractionGroupSequence[0].NumberOfFractionsPlanned
+            self.log(f"Prescription: {self.fractions} x {round(self.dose,2)} Gy")
             self.log(f"Number of beams: {len(sequence)}")
             self.log(f"Number of control points: {len(sequence.flatten())}")
             self.log(f"Total MU: {round(np.sum(sequence.flatten()),3)}")

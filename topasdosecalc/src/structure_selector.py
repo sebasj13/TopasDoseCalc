@@ -39,8 +39,9 @@ class StructureSelector(ctk.CTkScrollableFrame):
             for i in range(len(dcmfile.StructureSetROISequence)):
                 self.structures += [
                     (
-                        dcmfile.StructureSetROISequence[i].ROINumber,
+                        (a:=dcmfile.StructureSetROISequence[i].ROINumber),
                         dcmfile.StructureSetROISequence[i].ROIName,
+                        "#"+"".join([format(c,'02x') for c in [dcmfile.ROIContourSequence[j].ROIDisplayColor for j in range(len(dcmfile.ROIContourSequence)) if dcmfile.ROIContourSequence[j].ReferencedROINumber == a][0]]),
                     )
                 ]
         self.structures.sort(key=lambda y: y[0])
@@ -139,39 +140,39 @@ class StructureSelector(ctk.CTkScrollableFrame):
                         self.topas_dvh[i].bincenters,
                         self.topas_dvh[i].relative_volume.counts,
                         label=self.topas_dvh[i].name + " - TOPAS",
-                        marker=".",
+                        color=self.structures[i][2],
+                        linestyle="--",
+                        linewidth=0.5,
                     )
 
                     plt.plot(
                         self.ref_dvh[i].bincenters,
                         self.ref_dvh[i].relative_volume.counts,
                         label=self.ref_dvh[i].name + " - Ref",
+                        color=self.structures[i][2],
+                        linewidth=0.5,
                     )
 
                 break
 
             except Exception:
                 pass
-
-        plt.xlabel("Dosis [%s]" % self.ref_dvh[0].dose_units)
-        plt.ylabel("Volumen [%s]" % self.ref_dvh[0].relative_volume.volume_units)
-        plt.xlim(
-            left=0,
-            right=max(
-                [max(self.ref_dvh[i].bincenters) for i in range(len(self.ref_dvh))]
+        if len(self.ref_dvh) != 0:
+            plt.xlabel("Dosis [%s]" % self.ref_dvh[0].dose_units)
+            plt.ylabel("Volumen [%s]" % self.ref_dvh[0].relative_volume.volume_units)
+            plt.xlim(
+                left=0,
+                right=self.parent.master.dose*1.1)
+            plt.legend(loc="best")
+            self.parent.master.log(
+                f"Saving DVH.png to {self.parent.master.folder.get()}"
             )
-            * 1.5,
-        )
-        plt.legend(loc="best")
-        self.parent.master.log(
-            f"Saving DVH.png to {self.parent.master.folder.get()}"
-        )
-        plt.savefig(
-            os.path.join((self.parent.master.folder.get()), "DVH.png"), dpi=600
-        )
+            plt.savefig(
+                os.path.join((self.parent.master.folder.get()), "DVH.png"), dpi=600
+            )
 
 
-        self.parent.master.parent.pbvar.set(0)
-        self.parent.master.log(f"Completed DVH calculation")
+            self.parent.master.parent.pbvar.set(0)
+            self.parent.master.log(f"Completed DVH calculation")
         return
 

@@ -139,13 +139,13 @@ class StructureSelector(ctk.CTkScrollableFrame):
                         self.topas_dvh[i].bincenters,
                         self.topas_dvh[i].relative_volume.counts,
                         label=self.topas_dvh[i].name + " - TOPAS",
+                        marker=".",
                     )
 
                     plt.plot(
                         self.ref_dvh[i].bincenters,
                         self.ref_dvh[i].relative_volume.counts,
                         label=self.ref_dvh[i].name + " - Ref",
-                        marker="-",
                     )
 
                 break

@@ -262,12 +262,12 @@ class Options(ctk.CTkTabview):
             max_dose = []
             for i in range(len(data[0])):
                 self.parent.pbvar.set((i+1)/len(data[0]))
-                dose += np.array([ sum([data[j][i][0] for j in range(len(data))])  ]).reshape(-1,1)
-                std_dev += np.array([ np.sqrt(sum([data[j][i][1]**2 for j in range(len(data))])) ]).reshape(-1,1)
-                n_hist += np.array([ sum([data[j][i][2] for j in range(len(data))])  ]).reshape(-1,1)
-                count_in_bin +=  np.array([sum([data[j][i][3] for j in range(len(data))])  ]).reshape(-1,1)
-                max_dose += np.array([ max([data[j][i][0] for j in range(len(data))])  ]).reshape(-1,1)
-            data  = np.array([dose,std_dev,n_hist,count_in_bin, max_dose])     
+                dose += [ sum([data[j][i][0] for j in range(len(data))])  ]
+                std_dev += [ np.sqrt(sum([data[j][i][1]**2 for j in range(len(data))])) ]
+                n_hist += [ sum([data[j][i][2] for j in range(len(data))])  ]
+                count_in_bin +=  [sum([data[j][i][3] for j in range(len(data))])  ]
+                max_dose += [ max([data[j][i][0] for j in range(len(data))])  ]
+            data  = np.column_stack((dose, std_dev, n_hist, count_in_bin, max_dose)) 
             with open(os.path.join(self.folder.get(), f"{self.descriptionentry.get().strip()}_iso.csv"), "w") as file:
                 np.savetxt(file, data, delimiter=",", header="Sum\tStandard_Deviation\tHistories_with_Scorer_Active\tCount_in_Bin\tMax", comments="", fmt='%1.4f\t%1.4f\t%1.0f\t%1.0f\t%1.4f') 
             self.log(f"Saved merged isocenter file to {os.path.join(self.folder.get(), f'{self.descriptionentry.get().strip()}_iso.csv')}")

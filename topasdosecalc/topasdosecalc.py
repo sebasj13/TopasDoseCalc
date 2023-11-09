@@ -3,6 +3,8 @@ import os
 import sys
 from datetime import datetime
 
+from src.options import Options
+
 class TopasDoseCalc(ctk.CTk):
     def __init__(self):
         super().__init__()
@@ -17,22 +19,22 @@ class TopasDoseCalc(ctk.CTk):
         self.minsize(width=960, height=500)
         self.geometry("960x500")
         self.resizable(False, False)
-        self.iconpath = self.resource_path(os.path.join("src", "icon.ico"))
+        self.iconpath = self.resource_path(os.path.join("src", "images", "icon.ico"))
         self.iconbitmap(self.iconpath)
         
-        self.rowconfigure(0, minsize=244)
-        self.rowconfigure(1, minsize=244)
-        self.rowconfigure(2, minsize=12)
-        self.columnconfigure(0, weight=1)
+        self.rowconfigure(0, weight=1)
+        self.columnconfigure(0, minsize=480)
+        self.columnconfigure(1, minsize=480)
+        self.rowconfigure(1, minsize=12)
         
-        self.options = ctk.CTkFrame(self, border_color="black", border_width=1)
-        self.options.grid(row=0, sticky="nsew", padx=2, pady=2)
-        self.logger = ctk.CTkTextbox(self, activate_scrollbars=True, state="disabled", border_color="black", border_width=1, font=("Bahnschrift",14))
+        self.options = Options(self)
+        self.options.grid(row=0, column=0, sticky="nsew", padx=2, pady=2)
+        self.logger = ctk.CTkTextbox(self, activate_scrollbars=True, state="disabled", border_color="black", border_width=1, font=("Bahnschrift",14), fg_color="#2B2B2B")
         self.init_logger()
-        self.logger.grid(row=1, sticky="nsew", padx=2)
+        self.logger.grid(row=0, column=1, sticky="nsew", padx=2)
         self.pbvar=ctk.DoubleVar(value=0)
         self.pb = ctk.CTkProgressBar(self, progress_color="green", corner_radius=0, variable = self.pbvar)
-        self.pb.grid(row=2, sticky="nsew", pady=(2,0))
+        self.pb.grid(row=1, columnspan=2, column=0, sticky="nsew", pady=(2,0))
 
         self.mainloop()
             

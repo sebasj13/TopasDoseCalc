@@ -238,7 +238,6 @@ class Options(ctk.CTkTabview):
         with dcmread(file) as ds:
             if self.mus_checkbox._check_state == True:
                 data *= (float(self.mus_entry.get()) / float(self.reference_mus_entry.get()))
-            ds.PatientName = "TOPASMC"
             ds.DoseGridScaling = np.max(data) / (2 ** int(ds.HighBit))
             data = (data / ds.DoseGridScaling).astype(np.uint32)
             ds.PixelData = data.tobytes()
@@ -268,6 +267,12 @@ class Options(ctk.CTkTabview):
                 count_in_bin +=  [sum([data[j][i][3] for j in range(len(data))])  ]
                 max_dose += [ max([data[j][i][0] for j in range(len(data))])  ]
             data  = np.column_stack((dose, std_dev, n_hist, count_in_bin, max_dose)) 
+
+            dose_to_isocenter = np.average(dose)
+            statistical_accuracy = np.average([1/dose[i] * std_dev[i] * np.sqrt(n_hist) for i in range(len(dose))])
+            self.log(f"Dose to isocenter: {round(dose_to_isocenter*self.fractions,2)} Gy")
+            self.log(f"Isocenter dose deviation: {round((dose_to_isocenter/self.dose)*100 - 100,2)}%")
+            self.log(f"Statistical accuracy: {round(100*statistical_accuracy,2)}%")
             with open(os.path.join(self.folder.get(), f"{self.descriptionentry.get().strip()}_iso.csv"), "w") as file:
                 np.savetxt(file, data, delimiter=",", header="Sum\tStandard_Deviation\tHistories_with_Scorer_Active\tCount_in_Bin\tMax", comments="", fmt='%1.4e\t%1.4e\t%1.0f\t%1.0f\t%1.4e') 
             self.log(f"Saved merged isocenter file to {os.path.join(self.folder.get(), f'{self.descriptionentry.get().strip()}_iso.csv')}")
@@ -287,17 +292,7 @@ class Options(ctk.CTkTabview):
         for line in lines:
             l = line.split(",")
             data += [float(l[3])*scale, float(l[4])*scale, int(l[5]), int(l[6]), float(l[7])*scale]
-        return np.array(data).reshape(-1, 5)  
-    
-    def add_iso_data(self, data, data2):
-        for i in range(len(data)):
-            data[i][0] += data2[i][0]
-            data[i][1] = np.sqrt( data[i][1]**2 + data2[i][1]*+2)
-            data[i][2] += data2[i][2]
-            data[i][3] += data2[i][3]
-            data[i][4] = max([data[i][4], data2[i][4]])
-        return data
-          
+        return np.array(data).reshape(-1, 5)           
         
     def init_tab2(self):
         ### TAB 2 ###

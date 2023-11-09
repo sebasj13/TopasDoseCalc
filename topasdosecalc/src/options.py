@@ -375,15 +375,16 @@ class Options(ctk.CTkTabview):
         if self.dvh_checkbox.get() == True:
             self.rtstruct_button.grid(row=1, column=1, sticky="nsw", padx=5, pady=(20,1))
             self.rtdosebutton.grid(row=1, column=2, sticky="nsw", padx=5, pady=(20,1))
-            try: self.structures.grid(row=2, column=1, columnspan=3, sticky="nsew", padx=5, pady=(20,1))
-            except Exception: pass
         else:
             self.rtstruct_button.grid_forget()
+            self.rtdosebutton.grid_forget()
             try: self.structures.grid_forget()
             except Exception: pass
         
     def load_structures(self):
         self.rtstruct = askopenfilename(filetypes=[("RTSTRUCT", "*.dcm")])
+        try: self.structures.grid(row=2, column=1, columnspan=3, sticky="nsew", padx=5, pady=(20,1))
+        except Exception: pass
         if self.rtstruct != "":
             self.log(f"Loading structures from {self.rtstruct}")
             self.structures.create_buttons()

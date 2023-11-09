@@ -6,10 +6,7 @@ from pydicom import dcmread
 from threading import Thread
 from .mu_sequence import MU_Sequence
 from tkinter.filedialog import askdirectory, askopenfilename
-<<<<<<< HEAD
-=======
 from natsort import natsorted
->>>>>>> 3f6dff418c76bf398b40ceafd2d1131e690e28d7
 
 class Options(ctk.CTkTabview):
     def __init__(self, parent):
@@ -17,10 +14,7 @@ class Options(ctk.CTkTabview):
         self.log = self.parent.log
         self.resource_path = self.parent.resource_path
         self.sequence = []
-<<<<<<< HEAD
-=======
         self.fractions = 1
->>>>>>> 3f6dff418c76bf398b40ceafd2d1131e690e28d7
         super().__init__(parent, border_color="black", border_width=1)
         
         self.add("General")
@@ -60,13 +54,8 @@ class Options(ctk.CTkTabview):
         
         self.reference_label = ctk.CTkLabel(self.tab("General"), text="4. Specify the reference simulation and scale factors", font=("Bahnschrift",14), fg_color="#2B2B2B", anchor="w")
         self.reference_mus = ctk.StringVar(value="100")
-<<<<<<< HEAD
-        self.reference_histories = ctk.StringVar(value="10600000000")
-        self.reference_scale = ctk.StringVar(value="72430")
-=======
         self.reference_histories = ctk.StringVar(value="500000000")
         self.reference_scale = ctk.StringVar(value="973375")
->>>>>>> 3f6dff418c76bf398b40ceafd2d1131e690e28d7
         self.reference_checkbox = ctk.CTkCheckBox(self.tab("General"), state="disabled", text="", width=30)
 
         self.reference_mus_label = ctk.CTkLabel(self.tab("General"), text="Reference Monitor Units", font=("Bahnschrift",12), fg_color="#2B2B2B", anchor="center")
@@ -215,13 +204,9 @@ class Options(ctk.CTkTabview):
             
         self.log("Merging dose files...")
         flag = 0
-<<<<<<< HEAD
-        for i,file in enumerate(files):
-=======
         
         for i,file in enumerate(natsorted(files)):
             
->>>>>>> 3f6dff418c76bf398b40ceafd2d1131e690e28d7
             ds = dcmread(file)
             self.parent.pbvar.set((i+1)/len(files))
             if flag == 0:
@@ -234,18 +219,11 @@ class Options(ctk.CTkTabview):
                 newdata = ds.pixel_array * ds.DoseGridScaling
                 newdata *= float(self.reference_scale_entry.get()) * (float(self.reference_histories_entry.get()) / float(self.histories_entry.get()))
                 if self.mus_checkbox._check_state == False:
-<<<<<<< HEAD
-                    newdata *= (float(self.sequence.flatten()[i]) / float(self.reference_mus_entry.get()))
-
-                data = np.add(data, newdata)
-            
-=======
 
                     newdata *= (float(self.sequence.flatten()[i]) / float(self.reference_mus_entry.get()))
 
                 data = np.add(data, newdata)
         data *= self.fractions
->>>>>>> 3f6dff418c76bf398b40ceafd2d1131e690e28d7
         with dcmread(file) as ds:
             if self.mus_checkbox._check_state == True:
                 data *= (float(self.mus_entry.get()) / float(self.reference_mus_entry.get()))
@@ -307,13 +285,9 @@ class Options(ctk.CTkTabview):
                         temp.append(ds.BeamSequence[i].ControlPointSequence[j].CumulativeMetersetWeight * mus)
                 sequence.append(np.diff(temp))
             sequence = np.array(sequence)
-<<<<<<< HEAD
-            self.sequence = sequence
-=======
             self.fractions = ds.FractionGroupSequence[0].NumberOfFractionsPlanned
             self.sequence = sequence
             self.log(f"Number of fractions: {self.fractions}")
->>>>>>> 3f6dff418c76bf398b40ceafd2d1131e690e28d7
             self.log(f"Number of beams: {len(sequence)}")
             self.log(f"Number of control points: {len(sequence.flatten())}")
             self.log(f"Total MU: {round(np.sum(sequence.flatten()),3)}")

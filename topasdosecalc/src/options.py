@@ -5,6 +5,7 @@ import customtkinter as ctk
 from pydicom import dcmread
 from threading import Thread
 from .mu_sequence import MU_Sequence
+from .structure_selector import StructureSelector
 from tkinter.filedialog import askdirectory, askopenfilename
 from natsort import natsorted
 
@@ -19,10 +20,11 @@ class Options(ctk.CTkTabview):
         
         self.add("General")
         self.add("RTPLAN")
-        self.add("Options 3")
+        self.add("DVH")
         
         self.init_tab1()
         self.init_tab2()
+        self.init_tab3()
         self.check_buttons()
          
     def init_tab1(self):
@@ -169,21 +171,30 @@ class Options(ctk.CTkTabview):
             
     def merge_dose_files(self):
         files = []
+        iso_files = []
         if self.subdircheckbox._check_state == True:
             for root, dirs, files in os.walk(self.folder.get()):
                 for file in files:
                     if file.endswith(".dcm"):
                         files.append(os.path.join(root, file))
+                    elif file.endswith(".csv"):
+                        iso_files.append(os.path.join(root, file))
         else:
             for file in os.listdir(self.folder.get()):
                 if file.endswith(".dcm"):
                     files.append(os.path.join(self.folder.get(), file))  
+                elif file.endswith(".csv"):
+                    iso_files.append(os.path.join(root, file))
                     
         if len(files) == 0:
             self.log("No dose files found in selected folder")
             return
         else:
             self.log(f"Found {len(files)} dose files in selected folder")
+            
+            if self.mergeiso.get() == True:
+                self.log(f"Found {len(iso_files)} isocenter files in selected folder")
+            
             if self.mus_checkbox._check_state == False:
                 if len(files) != len(self.sequence.flatten()):
                     self.log("Number of dose files does not match number of control points. Trying to merge individual fields...")
@@ -201,7 +212,7 @@ class Options(ctk.CTkTabview):
                         return
                     
                     ####MERGE FIELDS; UPDATE FILES LIST AND CONTINUE####
-            
+        
         self.log("Merging dose files...")
         flag = 0
         
@@ -235,7 +246,44 @@ class Options(ctk.CTkTabview):
             ds.save_as(os.path.join(self.folder.get(), f"{self.descriptionentry.get().strip()}.dcm"))
             self.log(f"Saved merged dose file to {os.path.join(self.folder.get(), f'{self.descriptionentry.get().strip()}.dcm')}")
         self.parent.pbvar.set(0)
+        
+        if self.mergeiso.get() == True and len(iso_files) == len(self.sequence.flatten()):
+            self.log("Merging isocenter data...")
+            data = []
+            for i,file in enumerate(natsorted(iso_files)):
+                self.parent.pbvar.set((i+1)/len(iso_files))
+                scale =  float(self.reference_scale_entry.get()) * (float(self.reference_histories_entry.get()) / float(self.histories_entry.get())) * float(self.sequence.flatten()[i]) / float(self.reference_mus_entry.get())
+                if data == []:
+                    data = self.read_iso_csv(file, scale)
+                else:
+                    data =  self.add_iso_data(data, self.read_iso_csv(file, scale))
+            with open(os.path.join(self.folder.get(), f"{self.descriptionentry.get().strip()}_iso.csv"), "w") as file:
+                np.savetxt(file, data, delimiter=",", header="Sum, Standard_Deviation, Histories_with_Scorer_Active, Count_in_Bin, Max", comments="") 
+            self.log(f"Saved merged isocenter file to {os.path.join(self.folder.get(), f'{self.descriptionentry.get().strip()}_iso.csv')}")
+            self.parent.pbvar.set(0)
+        
         self.log("Merging complete. Done!")
+        
+    def read_iso_csv(self, f, scale):
+        
+        with open(f, "r") as file:
+            lines = file.readlines()[9:]
+            
+        data = []
+        for line in lines:
+            l = line.split(",")
+            data += [float(l[3])*scale, float(l[4])*scale, int(l[5]), int(l[6]), float(l[7])*scale]
+        return np.array(data).reshape(-1, 5)  
+    
+    def add_iso_data(self, data, data2):
+        for i in range(len(data)):
+            data[i][0] += data2[i][0]
+            data[i][1] += data2[i][1]
+            data[i][2] += data2[i][2]
+            data[i][3] += data2[i][3]
+            data[i][4] = max([data[i][4], data2[i][4]])
+        return data
+          
         
     def init_tab2(self):
         ### TAB 2 ###
@@ -251,6 +299,12 @@ class Options(ctk.CTkTabview):
         self.rtplan_checkbox.grid(row=0, column=0, sticky="nsew", padx=5, pady=(20,1))
         self.dicomimage = ctk.CTkImage(dark_image=Image.open(self.resource_path(os.path.join("src","images","dcm.ico"))), size=(40,24))
         self.rtplan_button = ctk.CTkButton(self.tab("RTPLAN"), image=self.dicomimage, compound="left", text="Load RTPLAN", width=30, command=self.load_mu_sequence)
+        
+        self.mergeisolabel = ctk.CTkLabel(self.tab("RTPLAN"), text="Merge Isocenter data", font=("Bahnschrift",14), fg_color="#2B2B2B", anchor="w")
+        self.mergeiso = ctk.BooleanVar(self, value=False)
+        self.mergeisocheckbox = ctk.CTkCheckBox(self.tab("RTPLAN"), text="", width=30, variable = self.mergeiso)
+        self.mergeisolabel.grid(row=3, column=1, columnspan=4, sticky="nsew", padx=5, pady=(20,1))
+        self.mergeisocheckbox.grid(row=3, column=0, sticky="nsew", padx=5, pady=(20,1))
         
     def reveal_button(self):
         if self.rtplan_checkbox._check_state == True:
@@ -296,5 +350,44 @@ class Options(ctk.CTkTabview):
                                              
         else:
             self.log("No RTPLAN selected")
+            
+    def init_tab3(self):
+        ### TAB 3 ###
+        self.tab("DVH").grid_propagate(False)
+        self.tab("DVH").columnconfigure(0, minsize=30)
+        self.tab("DVH").columnconfigure(1, weight=1)
+        self.tab("DVH").columnconfigure(2, weight=1)
+        self.rtdose = ""
         
+        self.dvhlabel = ctk.CTkLabel(self.tab("DVH"), text="Calculate DVH", font=("Bahnschrift",14), fg_color="#2B2B2B", anchor="w")
+        self.dvhlabel.grid(row=0, column=1, columnspan=4, sticky="nsew", padx=5, pady=(20,1))
+        self.dvh = ctk.BooleanVar(self, value=False)
+        self.dvh_checkbox = ctk.CTkCheckBox(self.tab("DVH"), text="", width=30, command=self.reveal_button2, variable = self.dvh)
+        self.dvh_checkbox.grid(row=0, column=0, sticky="nsew", padx=5, pady=(20,1))
+        self.structures = StructureSelector(self.tab("DVH"))
+        self.rtstruct_button = ctk.CTkButton(self.tab("DVH"), image=self.dicomimage, compound="left", text="Load RTSTRUCT", width=30, command=self.load_structures)
+        self.rtdosebutton = ctk.CTkButton(self.tab("DVH"), image=self.dicomimage, compound="left", text="Load RTDOSE", width=30, command=self.load_dose)
+
+    def reveal_button2(self):
+        if self.dvh_checkbox.get() == True:
+            self.rtstruct_button.grid(row=1, column=1, sticky="nsw", padx=5, pady=(20,1))
+            self.rtdosebutton.grid(row=1, column=2, sticky="nsw", padx=5, pady=(20,1))
+            try: self.structures.grid(row=2, column=1, columnspan=3, sticky="nsew", padx=5, pady=(20,1))
+            except Exception: pass
+        else:
+            self.rtstruct_button.grid_forget()
+            try: self.structures.grid_forget()
+            except Exception: pass
+        
+    def load_structures(self):
+        self.rtstruct = askopenfilename(filetypes=[("RTSTRUCT", "*.dcm")])
+        if self.rtstruct != "":
+            self.log(f"Loading structures from {self.rtstruct}")
+            self.structures.create_buttons()
+            self.structures.show_buttons()
+    
+    def load_dose(self):
+        self.rtdose = askopenfilename(filetypes=[("RTSTRUCT", "*.dcm")])
+        if self.rtdose != "":
+            self.log(f"Loading reference dose from {self.rtstruct}")
         

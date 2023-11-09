@@ -261,6 +261,9 @@ class Options(ctk.CTkTabview):
                 np.savetxt(file, data, delimiter=",", header="Sum, Standard_Deviation, Histories_with_Scorer_Active, Count_in_Bin, Max", comments="") 
             self.log(f"Saved merged isocenter file to {os.path.join(self.folder.get(), f'{self.descriptionentry.get().strip()}_iso.csv')}")
             self.parent.pbvar.set(0)
+            
+        if self.dvh.get():
+            self.structures.calculate_dvhs()
         
         self.log("Merging complete. Done!")
         

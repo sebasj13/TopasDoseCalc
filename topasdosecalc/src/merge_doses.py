@@ -1,6 +1,7 @@
 import os
 import threading
 from datetime import datetime
+from natsort import natsorted
 
 import numpy as np
 from pydicom import dcmread, uid
@@ -11,7 +12,13 @@ def merge_doses(parent, root, frame, progressbar, button, output, frame2, log):
     output.add_text("Begun job...")
 
     try:
-
+        frame.simulations = natsorted(
+            [
+                os.path.join(frame.folder_selected, file)
+                for file in os.listdir(frame.folder_selected)
+                if file.endswith(".dcm")
+            ]
+        )
         if len(frame.mus) != len(frame.simulations):
             output.add_text(
                 "(ERROR) Number of control points does not match number of simulations!"
@@ -60,6 +67,7 @@ def merge_doses(parent, root, frame, progressbar, button, output, frame2, log):
             / hist_sum
             * fx
         )
+        
 
         array = initial_file.pixel_array * scale
 

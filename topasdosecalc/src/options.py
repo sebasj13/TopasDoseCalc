@@ -7,6 +7,7 @@ import pymedphys
 from threading import Thread
 from .mu_sequence import MU_Sequence
 from .structure_selector import StructureSelector
+from .gamma import crop_dose_to_roi, gamma
 from tkinter.filedialog import askdirectory, askopenfilename
 from natsort import natsorted
 
@@ -277,12 +278,15 @@ class Options(ctk.CTkTabview):
             self.log(f"Isocenter dose deviation: {round((dose_to_isocenter/self.dose)*100 - 100,2)}%")
             self.log(f"Statistical accuracy: {round(100*statistical_accuracy,2)}%")
             with open(os.path.join(self.folder.get(), f"{self.descriptionentry.get().strip()}_iso.csv"), "w") as file:
-                np.savetxt(file, data, delimiter=",", header="Sum\tStandard_Deviation\tHistories_with_Scorer_Active\tCount_in_Bin\tMax", comments="", fmt='%1.4e\t%1.4e\t%1.0f\t%1.0f\t%1.4e') 
+                np.savetxt(file, data, delimiter=",", header="Sum//tStandard_Deviation//tHistories_with_Scorer_Active//tCount_in_Bin//tMax", comments="", fmt='%1.4e//t%1.4e//t%1.0f//t%1.0f//t%1.4e') 
             self.log(f"Saved merged isocenter file to {os.path.join(self.folder.get(), f'{self.descriptionentry.get().strip()}_iso.csv')}")
             self.parent.pbvar.set(0)
             
         if self.dvh.get():
             self.structures.calculate_dvhs()
+            
+        if self.gamma.get():
+            self.calculate_gamma()
         
         self.log("Merging complete. Done!")
         
@@ -401,6 +405,8 @@ class Options(ctk.CTkTabview):
             self.log(f"Loading structures from {self.rtstruct}")
             self.structures.create_buttons()
             self.structures.show_buttons()
+            self.roi_selector.configure(values = [struct[1] for struct in self.structures.structures])
+            self.roi_selector.set(self.roi_selector.cget("values")[0])
     
     def load_dose(self):
         self.rtdose = askopenfilename(filetypes=[("RTDOSE", "*.dcm")])
@@ -420,32 +426,45 @@ class Options(ctk.CTkTabview):
         self.gamma_checkbox = ctk.CTkCheckBox(self.tab("Gamma"), text="", width=30, variable = self.gamma)
         self.gamma_checkbox.grid(row=0, column=0, sticky="nsew", padx=5, pady=(20,1))
         
+        self.roi_selector_label = ctk.CTkLabel(self.tab("Gamma"), text="Region of Interest", font=("Bahnschrift",12), fg_color="#2B2B2B")
+        self.roi = ctk.StringVar(self, value="")
+        self.roi_selector = ctk.CTkComboBox(self.tab("Gamma"), width=200, values=[""], variable=self.roi)
+        self.roi_selector_label.grid(row=1, column=1, sticky="w", padx=5, pady=(20,1))
+        self.roi_selector.grid(row=1, column=2, sticky="w", padx=5, pady=(20,1))
         self.gammatype = ctk.CTkLabel(self.tab("Gamma"), text="Gamma Type", font=("Bahnschrift",12), fg_color="#2B2B2B")
-        self.gammatype.grid(row=1, column=1, sticky="w", padx=5, pady=(20,1))
+        self.gammatype.grid(row=2, column=1, sticky="w", padx=5, pady=(20,1))
         self.gammatypeselector = ctk.CTkComboBox(self.tab("Gamma"), width=100, values=["Global", "Local"])
-        self.gammatypeselector.grid(row=1, column=2, sticky="w", padx=5, pady=(20,1))
+        self.gammatypeselector.grid(row=2, column=2, sticky="w", padx=5, pady=(20,1))
         self.dosecriteria = ctk.CTkLabel(self.tab("Gamma"), text="Dose Criteria [%]", font=("Bahnschrift",12), fg_color="#2B2B2B")
         self.distancecriteria = ctk.CTkLabel(self.tab("Gamma"), text="Distance Criteria [mm]", font=("Bahnschrift",12), fg_color="#2B2B2B")
-        self.dosecriteria.grid(row=2, column=1, sticky="w", padx=5, pady=(20,1))
-        self.distancecriteria.grid(row=3, column=1, sticky="w", padx=5, pady=(20,1))
+        self.dosecriteria.grid(row=3, column=1, sticky="w", padx=5, pady=(20,1))
+        self.distancecriteria.grid(row=4, column=1, sticky="w", padx=5, pady=(20,1))
         self.dosecriteria_entry = ctk.CTkEntry(self.tab("Gamma"), width=100)
         self.dosecriteria_entry.insert(0, "2")
         self.distancecriteria_entry = ctk.CTkEntry(self.tab("Gamma"), width=100)
         self.distancecriteria_entry.insert(0, "3")
-        self.dosecriteria_entry.grid(row=2, column=2, sticky="w", padx=5, pady=(20,1))
-        self.distancecriteria_entry.grid(row=3, column=2, sticky="w", padx=5, pady=(20,1))
+        self.dosecriteria_entry.grid(row=3, column=2, sticky="w", padx=5, pady=(20,1))
+        self.distancecriteria_entry.grid(row=4, column=2, sticky="w", padx=5, pady=(20,1))
         self.dosethreshold = ctk.CTkLabel(self.tab("Gamma"), text="Dose Threshold [%]", font=("Bahnschrift",12), fg_color="#2B2B2B")
-        self.dosethreshold.grid(row=4, column=1, sticky="w", padx=5, pady=(20,1))
+        self.dosethreshold.grid(row=5, column=1, sticky="w", padx=5, pady=(20,1))
         self.dosethreshold_entry = ctk.CTkEntry(self.tab("Gamma"), width=100)
         self.dosethreshold_entry.insert(0, "10")
-        self.dosethreshold_entry.grid(row=4, column=2, sticky="w", padx=5, pady=(20,1))
+        self.dosethreshold_entry.grid(row=5, column=2, sticky="w", padx=5, pady=(20,1))
         
-    def calculate_gamma(self):
-        ref_dose = dcmread(self.rtdose)
-        test_dose = dcmread(os.path.join(self.folder.get(), f'{self.descriptionentry.get().strip()}.dcm'))
+    def get_roi_number(self):
+        roi_number = [r[0] for r in self.structures.structures if r[1] == self.roi.get()][0]
+        return int(roi_number)
         
-        axes_reference, dose_reference = pymedphys.dicom.zyx_and_dose_from_dataset(ref_dose)
-        axes_evaluation, dose_evaluation = pymedphys.dicom.zyx_and_dose_from_dataset(test_dose)
+        
+    def calculate_gamma(self):       
+        ref_dose = self.rtdose
+        test_dose = os.path.join(self.folder.get(), f'{self.descriptionentry.get().strip()}.dcm')
+        roi = self.get_roi_number()
+        
+        self.log(f"Creating dose maps for selected structure: {self.roi.get()}")
+        axes_reference, dose_reference = crop_dose_to_roi(ref_dose, self.rtstruct, roi, self.parent.pbvar)
+        axes_evaluation, dose_evaluation = crop_dose_to_roi(test_dose, self.rtstruct, roi, self.parent.pbvar)
+        
         gamma_options = {
             'dose_percent_threshold': int(self.dosecriteria_entry.get()),
             'distance_mm_threshold': int(self.distancecriteria_entry.get()),
@@ -457,19 +476,16 @@ class Options(ctk.CTkTabview):
             'ram_available': 2**32,
             'quiet': True,
         }
-        
-        gamma = pymedphys.gamma(
+        self.log(f"Calculating {self.dosecriteria_entry.get()}%/{self.distancecriteria_entry.get()}mm Gamma Passrate for structure {self.roi.get()} ...")
+        gam = gamma(
             axes_reference,
             dose_reference,
             axes_evaluation,
             dose_evaluation,
+            self.parent.pbvar,
             **gamma_options
         )
-        valid_gamma = gamma[~np.isnan(gamma)]
+        valid_gamma = gam[~np.isnan(gam)]
         pass_ratio = np.sum(valid_gamma <= 1) / len(valid_gamma)
-        
-        return pass_ratio
-        
-        
-        
-        
+        self.log(f"Gamma Passrate: {round(pass_ratio*100,2)} %")
+        self.parent.pbvar.set(0)

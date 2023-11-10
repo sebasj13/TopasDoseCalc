@@ -3,7 +3,7 @@ import os
 import sys
 from datetime import datetime
 
-from src.options import Options
+from .src.options import Options
 
 class TopasDoseCalc(ctk.CTk):
     def __init__(self):

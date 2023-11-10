@@ -1,3 +1,3 @@
 import topasdosecalc
 
-topasdosecalc.topasdosecalc.topasdosecalc()
+topasdosecalc.topasdosecalc.TopasDoseCalc()

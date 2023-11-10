@@ -5,7 +5,7 @@ from datetime import datetime
 
 from .src.options import Options
 
-class TopasDoseCalc(ctk.CTk):
+class topasdosecalc(ctk.CTk):
     def __init__(self):
         super().__init__()
         ctk.set_appearance_mode("dark")
@@ -59,4 +59,4 @@ class TopasDoseCalc(ctk.CTk):
         self.logger.see("end")                       
         
 if __name__ == "__main__":
-    TopasDoseCalc()
+    topasdosecalc()

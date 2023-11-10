@@ -3,7 +3,6 @@ import numpy as np
 from PIL import Image
 import customtkinter as ctk
 from pydicom import dcmread
-import pymedphys
 from threading import Thread
 from .mu_sequence import MU_Sequence
 from .structure_selector import StructureSelector

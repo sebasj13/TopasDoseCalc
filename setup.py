@@ -5,10 +5,10 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="topasdosecalc",
-    version="1.4",
+    version="2.0",
     author="Sebastian Schäfer",
     author_email="sebastian.schaefer@student.uni-halle.de",
-    description="Merge and scale TOPAS DICOMS - calculate and compare DVHs",
+    description="Merge and scale TOPAS DICOMS - calculate and compare DVHs and Gamma Index",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/sebasj13/TopasDoseCalc",
@@ -28,6 +28,10 @@ setuptools.setup(
         "natsort",
         "Pillow",
         "topas2numpy",
+        "pymedphys",
+        "customtkinter",
+        "natsort"
+        
     ],
     packages=["topasdosecalc", "topasdosecalc.src"],
     scripts=["topasdosecalc/topasdosecalc.py"],

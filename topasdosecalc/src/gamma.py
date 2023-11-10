@@ -4,7 +4,6 @@ from six import iteritems
 import numpy as np
 import matplotlib
 import pymedphys
-import time
 
 # Copyright (C) 2015-2018 Simon Biggs
 # Licensed under the Apache License, Version 2.0 (the "License");

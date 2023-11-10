@@ -3,6 +3,7 @@ import numpy as np
 from PIL import Image
 import customtkinter as ctk
 from pydicom import dcmread
+import pymedphys
 from threading import Thread
 from .mu_sequence import MU_Sequence
 from .structure_selector import StructureSelector
@@ -21,10 +22,12 @@ class Options(ctk.CTkTabview):
         self.add("General")
         self.add("RTPLAN")
         self.add("DVH")
+        self.add("Gamma")
         
         self.init_tab1()
         self.init_tab2()
         self.init_tab3()
+        self.init_tab4()
         self.check_buttons()
          
     def init_tab1(self):
@@ -403,4 +406,70 @@ class Options(ctk.CTkTabview):
         self.rtdose = askopenfilename(filetypes=[("RTDOSE", "*.dcm")])
         if self.rtdose != "":
             self.log(f"Loading reference dose from {self.rtstruct}")
+            
+    def init_tab4(self):
+        ### TAB 4 ###
+        self.tab("Gamma").grid_propagate(False)
+        self.tab("Gamma").columnconfigure(0, minsize=30)
+        self.tab("Gamma").columnconfigure(1, weight=1)
+        self.tab("Gamma").columnconfigure(2, weight=3)
+        
+        self.gammalabel = ctk.CTkLabel(self.tab("Gamma"), text="Calculate Gamma", font=("Bahnschrift",14), fg_color="#2B2B2B", anchor="w")
+        self.gammalabel.grid(row=0, column=1, sticky="nsew", padx=5, pady=(20,1))
+        self.gamma = ctk.BooleanVar(self, value=False)
+        self.gamma_checkbox = ctk.CTkCheckBox(self.tab("Gamma"), text="", width=30, variable = self.gamma)
+        self.gamma_checkbox.grid(row=0, column=0, sticky="nsew", padx=5, pady=(20,1))
+        
+        self.gammatype = ctk.CTkLabel(self.tab("Gamma"), text="Gamma Type", font=("Bahnschrift",12), fg_color="#2B2B2B")
+        self.gammatype.grid(row=1, column=1, sticky="w", padx=5, pady=(20,1))
+        self.gammatypeselector = ctk.CTkComboBox(self.tab("Gamma"), width=100, values=["Global", "Local"])
+        self.gammatypeselector.grid(row=1, column=2, sticky="w", padx=5, pady=(20,1))
+        self.dosecriteria = ctk.CTkLabel(self.tab("Gamma"), text="Dose Criteria [%]", font=("Bahnschrift",12), fg_color="#2B2B2B")
+        self.distancecriteria = ctk.CTkLabel(self.tab("Gamma"), text="Distance Criteria [mm]", font=("Bahnschrift",12), fg_color="#2B2B2B")
+        self.dosecriteria.grid(row=2, column=1, sticky="w", padx=5, pady=(20,1))
+        self.distancecriteria.grid(row=3, column=1, sticky="w", padx=5, pady=(20,1))
+        self.dosecriteria_entry = ctk.CTkEntry(self.tab("Gamma"), width=100)
+        self.dosecriteria_entry.insert(0, "2")
+        self.distancecriteria_entry = ctk.CTkEntry(self.tab("Gamma"), width=100)
+        self.distancecriteria_entry.insert(0, "3")
+        self.dosecriteria_entry.grid(row=2, column=2, sticky="w", padx=5, pady=(20,1))
+        self.distancecriteria_entry.grid(row=3, column=2, sticky="w", padx=5, pady=(20,1))
+        self.dosethreshold = ctk.CTkLabel(self.tab("Gamma"), text="Dose Threshold [%]", font=("Bahnschrift",12), fg_color="#2B2B2B")
+        self.dosethreshold.grid(row=4, column=1, sticky="w", padx=5, pady=(20,1))
+        self.dosethreshold_entry = ctk.CTkEntry(self.tab("Gamma"), width=100)
+        self.dosethreshold_entry.insert(0, "10")
+        self.dosethreshold_entry.grid(row=4, column=2, sticky="w", padx=5, pady=(20,1))
+        
+    def calculate_gamma(self):
+        ref_dose = dcmread(self.rtdose)
+        test_dose = dcmread(os.path.join(self.folder.get(), f'{self.descriptionentry.get().strip()}.dcm'))
+        
+        axes_reference, dose_reference = pymedphys.dicom.zyx_and_dose_from_dataset(ref_dose)
+        axes_evaluation, dose_evaluation = pymedphys.dicom.zyx_and_dose_from_dataset(test_dose)
+        gamma_options = {
+            'dose_percent_threshold': int(self.dosecriteria_entry.get()),
+            'distance_mm_threshold': int(self.distancecriteria_entry.get()),
+            'lower_percent_dose_cutoff': int(self.dosethreshold_entry.get()),
+            'interp_fraction': 10,  # Should be 10 or more for more accurate results
+            'max_gamma': 2,
+            'random_subset': None,
+            'local_gamma': True if self.gammatypeselector.get() == "Local" else False,
+            'ram_available': 2**32,
+            'quiet': True,
+        }
+        
+        gamma = pymedphys.gamma(
+            axes_reference,
+            dose_reference,
+            axes_evaluation,
+            dose_evaluation,
+            **gamma_options
+        )
+        valid_gamma = gamma[~np.isnan(gamma)]
+        pass_ratio = np.sum(valid_gamma <= 1) / len(valid_gamma)
+        
+        return pass_ratio
+        
+        
+        
         

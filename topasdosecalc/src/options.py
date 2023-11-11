@@ -277,7 +277,7 @@ class Options(ctk.CTkTabview):
             self.log(f"Isocenter dose deviation: {round((dose_to_isocenter/self.dose)*100 - 100,2)}%")
             self.log(f"Statistical accuracy: {round(100*statistical_accuracy,2)}%")
             with open(os.path.join(self.folder.get(), f"{self.descriptionentry.get().strip()}_iso.csv"), "w") as file:
-                np.savetxt(file, data, delimiter=",", header="Sum//tStandard_Deviation//tHistories_with_Scorer_Active//tCount_in_Bin//tMax", comments="", fmt='%1.4e//t%1.4e//t%1.0f//t%1.0f//t%1.4e') 
+                np.savetxt(file, data, delimiter=",", header="Sum\tStandard_Deviation\tHistories_with_Scorer_Active\tCount_in_Bin\tMax", comments="", fmt='%1.4e\t%1.4e\t%1.0f\t%1.0f\t%1.4e') 
             self.log(f"Saved merged isocenter file to {os.path.join(self.folder.get(), f'{self.descriptionentry.get().strip()}_iso.csv')}")
             self.parent.pbvar.set(0)
             

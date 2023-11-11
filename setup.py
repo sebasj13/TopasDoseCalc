@@ -22,12 +22,10 @@ setuptools.setup(
     install_requires=[
         "numpy",
         "matplotlib",
-        "topas2numpy",
         "pydicom",
         "dicompyler-core",
         "natsort",
         "Pillow",
-        "topas2numpy",
         "pymedphys",
         "customtkinter",
         "natsort"

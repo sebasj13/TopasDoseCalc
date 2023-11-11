@@ -4,6 +4,8 @@ from six import iteritems
 import numpy as np
 import matplotlib
 import pymedphys
+from skimage.transform import rescale
+from PIL import Image, ImageOps
 
 # Copyright (C) 2015-2018 Simon Biggs
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -641,11 +643,13 @@ def crop_dose_to_roi(rtdose_file, rtstruct_file, roi_number, pbvar):
 
         """
         if (min_pixel_spacing % new_pixel_spacing != 0.0):
+            """
             raise AttributeError(
                 "New pixel spacing must be a factor of %g/(2^n),"
                 % min_pixel_spacing +
                 " where n is an integer. Value provided was %g."
                 % new_pixel_spacing)
+            """
         sampling_rate = np.array([
             abs(index_extents[0] - index_extents[2])+1,
             abs(index_extents[1] - index_extents[3])+1
@@ -683,6 +687,46 @@ def crop_dose_to_roi(rtdose_file, rtstruct_file, roi_number, pbvar):
             new_planes[plane] = planes[keymap[new_plane]]
         return new_planes
 
+
+    def get_interpolated_dose(dose, z, resolution, extents):
+        """Get interpolated dose for the given z, resolution & array extents.
+
+        Parameters
+        ----------
+        dose : DicomParser
+            A DicomParser instance of an RT Dose.
+        z : float
+            Index in mm of z plane of dose grid.dose
+        resolution : tuple
+            Interpolation resolution less than or equal to dose grid pixel spacing.
+            Provided in (row, col) format.
+        extents : list
+            Dose grid index extents.
+
+        Returns
+        -------
+        ndarray
+            Interpolated dose grid with a shape larger than the input dose grid.
+        """
+        # Return the dose bounded by extents if interpolation is not required
+        d = dose.GetDoseGrid(z)
+        if not d.size:
+            return d  # cannot take 2d index below if empty
+        extent_dose = d[extents[1]:extents[3],
+                        extents[0]:extents[2]] if len(extents) else d
+        if not resolution:
+            return extent_dose
+        scale = (np.array(dose.ds.PixelSpacing) / resolution).tolist()
+        interp_dose = rescale(
+            extent_dose,
+            scale=scale,
+            order=1,
+            mode='symmetric',
+            preserve_range=True,
+            channel_axis=None
+        )
+        return interp_dose
+
     def get_contour_mask(dd, dosegridpoints, contour):
         """Get the mask for the contour with respect to the dose plane."""
         doselut = dd['lut']
@@ -703,8 +747,7 @@ def crop_dose_to_roi(rtdose_file, rtstruct_file, roi_number, pbvar):
         grid = grid.reshape((len(doselut[1]), len(doselut[0])))
         return grid 
 
-    interpolation_resolution = 2.5
-    interpolation_segments_between_planes = 1
+
     rtss = dicomparser.DicomParser(rtstruct_file)
     rtdose = dicomparser.DicomParser(rtdose_file)
     structures = rtss.GetStructures()
@@ -714,13 +757,23 @@ def crop_dose_to_roi(rtdose_file, rtstruct_file, roi_number, pbvar):
     s['thickness'] =  rtss.CalculatePlaneThickness(s['planes'])
     planes = collections.OrderedDict(sorted(iteritems(s['planes'])))
 
+    def find_interpolation(slice_thickness, dose_grid):
+        
+        grid_sizes = [dose_grid/2**i for i in range(1, 10)]
+        slice_thicknesses = [slice_thickness/(i+1) for i in range(10)]
+        
+        for i in grid_sizes:
+            for j in slice_thicknesses:
+                if i == j:
+                    return i, slice_thicknesses.index(j)
+
+    interpolation_resolution, interpolation_segments_between_planes = find_interpolation(s['thickness'], rtdose.ds.PixelSpacing[0] )
+
     if ((len(planes)) and ("PixelData" in rtdose.ds)):
 
         dd = rtdose.GetDoseData()
         id = rtdose.GetImageData()
-        
-        
-        if interpolation_resolution:
+        if interpolation_resolution < id['pixelspacing'][0]:
             extents = []
             dgindexextents = dosegrid_extents_indices(extents, dd)
             dgextents = dosegrid_extents_positions(dgindexextents, dd)
@@ -731,7 +784,7 @@ def crop_dose_to_roi(rtdose_file, rtstruct_file, roi_number, pbvar):
                 min_pixel_spacing=id['pixelspacing'][0])
             dd['rows'] = dd['lut'][1].shape[0]
             dd['columns'] = dd['lut'][0].shape[0]
-            
+
         x, y = np.meshgrid(np.array(dd['lut'][0]), np.array(dd['lut'][1]))
         x, y = x.flatten(), y.flatten()
         dosegridpoints = np.vstack((x, y)).T
@@ -740,7 +793,6 @@ def crop_dose_to_roi(rtdose_file, rtstruct_file, roi_number, pbvar):
                 planes, interpolation_segments_between_planes)
             # Thickness derived from total number of segments relative to original
     s['thickness'] = s['thickness'] / (interpolation_segments_between_planes + 1)
-
     map = []   
     l = 0
     for z, plane in iteritems(planes):
@@ -755,14 +807,20 @@ def crop_dose_to_roi(rtdose_file, rtstruct_file, roi_number, pbvar):
     sorted_map = sorted(map, key=lambda x: x[0])
     z = [x[0] for x in sorted_map]
 
-    ax, _ = pymedphys.dicom.zyx_and_dose_from_dataset(rtdose.ds)
+    y_flip = y[0] > y[-1]
+    x_flip = x[0] > x[-1]
+    y, x = np.unique(y), np.unique(x)
+    if y_flip:
+        y = np.flip(y)
+    if x_flip:
+        x = np.flip(x)
+        
+    ax = [np.array(z),y,x]
     dose_grid_scaling = rtdose.ds.DoseGridScaling
-
     cropped_dose = []
-    for i in ax[0]:
-        if i not in z:
-            cropped_dose += [np.zeros((dd['rows'], dd['columns']))]
-        else:
-            cropped_dose += [np.ma.masked_array(rtdose.GetDoseGrid(i), mask=sorted_map[z.index(i)][1]).filled(0) * dose_grid_scaling]
-
+    for i in z:
+        dose = Image.fromarray(get_interpolated_dose(rtdose,i,interpolation_resolution,dgindexextents))
+        img = ImageOps.expand(dose, border=2)
+        dose = np.array(img)
+        cropped_dose += [np.ma.masked_array(dose, mask=sorted_map[z.index(i)][1]).filled(0) * dose_grid_scaling]
     return ax, cropped_dose

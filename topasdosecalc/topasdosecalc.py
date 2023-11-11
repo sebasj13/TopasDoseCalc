@@ -3,7 +3,7 @@ import os
 import sys
 from datetime import datetime
 
-from .src.options import Options
+from src.options import Options
 
 class topasdosecalc(ctk.CTk):
     def __init__(self):
@@ -29,7 +29,7 @@ class topasdosecalc(ctk.CTk):
         
         self.options = Options(self)
         self.options.grid(row=0, column=0, sticky="nsew", padx=2, pady=2)
-        self.logger = ctk.CTkTextbox(self, activate_scrollbars=True, state="disabled", border_color="black", border_width=1, font=("Bahnschrift",14), fg_color="#2B2B2B")
+        self.logger = ctk.CTkTextbox(self, activate_scrollbars=True, state="disabled", border_color="black", border_width=1, font=("Bahnschrift",14), fg_color="#2B2B2B", tabs="1.5c", wrap="none")
         self.init_logger()
         self.logger.grid(row=0, column=1, sticky="nsew", padx=2)
         self.pbvar=ctk.DoubleVar(value=0)
@@ -53,10 +53,13 @@ class topasdosecalc(ctk.CTk):
         self.logger.configure(state="normal")
         time = ""
         if logtime:
-            time = datetime.now().strftime("%H:%M:%S") + " | "
+            time = datetime.now().strftime("%H:%M:%S") + "\t| "
         self.logger.insert("end", f"{time}{message}\n")
         self.logger.configure(state="disabled")
-        self.logger.see("end")                       
+        self.logger.see("end")    
+
+    def cli(self):
+        pass                 
         
 if __name__ == "__main__":
     topasdosecalc()

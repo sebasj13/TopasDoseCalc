@@ -22,6 +22,7 @@ setuptools.setup(
     install_requires=[
         "numpy",
         "matplotlib",
+        "scikit-image",
         "topas2numpy",
         "pydicom",
         "dicompyler-core",

@@ -6,7 +6,7 @@ import customtkinter as ctk
 import dicompylercore.dvhcalc as dv
 import matplotlib as mpl
 
-mpl.use("Agg")
+#mpl.use("Agg")
 import matplotlib.pyplot as plt
 from pydicom import dcmread
 
@@ -97,6 +97,7 @@ class StructureSelector(ctk.CTkScrollableFrame):
                                     self.rtstruct,
                                     filename,
                                     self.structures[i][0],
+                                    limit=int(self.parent.master.fractions*self.parent.master.dose*110),
                                 )
                             ]
                             k+=1
@@ -127,6 +128,7 @@ class StructureSelector(ctk.CTkScrollableFrame):
                             self.rtstruct,
                             f"{self.parent.master.rtdose}",
                             self.structures[i][0],
+                            limit=int(self.parent.master.fractions*self.parent.master.dose*110),
                         )
                     ]
 
@@ -170,12 +172,14 @@ class StructureSelector(ctk.CTkScrollableFrame):
             plt.xlim(
                 left=0,
                 right=self.parent.master.fractions*self.parent.master.dose*1.1)
-            plt.legend(loc="best")
             self.parent.master.log(
                 f"Saving DVH.png to {self.parent.master.folder.get()}"
             )
+            plt.grid()
+            plt.gcf().legend(bbox_to_anchor=(0.5,-0.05), loc="upper center", ncols=5, fancybox=True, shadow=True, prop={'size': 8})
+            plt.gcf().tight_layout()
             plt.savefig(
-                os.path.join((self.parent.master.folder.get()), "DVH.png"), dpi=600
+                os.path.join((self.parent.master.folder.get()), "DVH.png"), dpi=600, bbox_inches='tight'
             )
 
 

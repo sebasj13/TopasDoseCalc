@@ -6,7 +6,7 @@ import customtkinter as ctk
 import dicompylercore.dvhcalc as dv
 import matplotlib as mpl
 
-#mpl.use("Agg")
+mpl.use("Agg")
 import matplotlib.pyplot as plt
 from pydicom import dcmread
 

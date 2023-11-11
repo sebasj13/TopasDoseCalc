@@ -819,8 +819,10 @@ def crop_dose_to_roi(rtdose_file, rtstruct_file, roi_number, pbvar):
     dose_grid_scaling = rtdose.ds.DoseGridScaling
     cropped_dose = []
     for i in z:
-        dose = Image.fromarray(get_interpolated_dose(rtdose,i,interpolation_resolution,dgindexextents))
-        img = ImageOps.expand(dose, border=2)
+
+        dose = Image.fromarray((a:=get_interpolated_dose(rtdose,i,interpolation_resolution,dgindexextents)))
+        border = abs(a.shape[0] - grid.shape[0])//2
+        img = ImageOps.expand(dose, border=border)
         dose = np.array(img)
         cropped_dose += [np.ma.masked_array(dose, mask=sorted_map[z.index(i)][1]).filled(0) * dose_grid_scaling]
     return ax, cropped_dose

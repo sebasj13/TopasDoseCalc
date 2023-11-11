@@ -422,7 +422,7 @@ class Options(ctk.CTkTabview):
         self.gammalabel = ctk.CTkLabel(self.tab("Gamma"), text="Calculate Gamma", font=("Bahnschrift",14), fg_color="#2B2B2B", anchor="w")
         self.gammalabel.grid(row=0, column=1, sticky="nsew", padx=5, pady=(20,1))
         self.gamma = ctk.BooleanVar(self, value=False)
-        self.gamma_checkbox = ctk.CTkCheckBox(self.tab("Gamma"), text="", width=30, variable = self.gamma, command = lambda: Thread(target=self.calculate_gamma).start())
+        self.gamma_checkbox = ctk.CTkCheckBox(self.tab("Gamma"), text="", width=30, variable = self.gamma)
         self.gamma_checkbox.grid(row=0, column=0, sticky="nsew", padx=5, pady=(20,1))
         
         self.roi_selector_label = ctk.CTkLabel(self.tab("Gamma"), text="Region of Interest", font=("Bahnschrift",12), fg_color="#2B2B2B")

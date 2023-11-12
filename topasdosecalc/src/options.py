@@ -9,7 +9,7 @@ from .structure_selector import StructureSelector
 from .gamma import crop_dose_to_roi, gamma
 from tkinter.filedialog import askdirectory, askopenfilename
 from natsort import natsorted
-from .accuracy_prediction import accuracy_prediction
+from mlca.mlc_analyzer import Plan
 
 class Options(ctk.CTkTabview):
     def __init__(self, parent):
@@ -340,30 +340,28 @@ class Options(ctk.CTkTabview):
     def load_mu_sequence(self):
         
         path = askopenfilename(filetypes=[("RTPLAN", "*.dcm")])
-        if path != "":
+        if path != "":            
+                 
+            plan = Plan(path)
             self.log(f"Loading MU sequence from {path}")
-            sequence = []
-            ds = dcmread(path)
-            self.dose = 0
-            for i in range(len(ds.BeamSequence)):
-                temp = [0]
-                if len(ds.BeamSequence[i].ControlPointSequence) == 2:
-                    mus = ds.FractionGroupSequence[0].ReferencedBeamSequence[i].BeamMeterset
-                    self.dose += ds.FractionGroupSequence[0].ReferencedBeamSequence[i].BeamDose
-                    temp.append(ds.BeamSequence[i].ControlPointSequence[1].CumulativeMetersetWeight * mus)
-                else:
-                    self.dose += ds.FractionGroupSequence[0].ReferencedBeamSequence[i].BeamDose
-                    for j in range(len(ds.BeamSequence[i].ControlPointSequence)):
-                        mus = ds.FractionGroupSequence[0].ReferencedBeamSequence[i].BeamMeterset
-                        temp.append(ds.BeamSequence[i].ControlPointSequence[j].CumulativeMetersetWeight * mus)
-                sequence += np.diff(temp).tolist()
-            self.sequence = np.array(sequence)
-            self.fractions = ds.FractionGroupSequence[0].NumberOfFractionsPlanned
+            fxgroups = [var for var in plan.fx_group]
+            beams = [var.beam for var in fxgroups][0]
+            mu = []
+            for beam in beams:
+                for i, value in enumerate(beam.cp_mu):
+                    try:
+                        beam.cp_seq[i].BeamLimitingDevicePositionSequence
+                        mu.append(value)
+                    except AttributeError:
+                        pass
+            self.sequence = np.array(mu)
+            self.fractions = plan.summary[0]["Fractions"]
+            self.dose = sum([plan.rt_plan.FractionGroupSequence[0].ReferencedBeamSequence[i].BeamDose for i in range(len(beams))])
             self.log(f"Prescription: {self.fractions} x {round(self.dose,2)} Gy")
-            self.log(f"Number of beams: {len(sequence)}")
-            self.log(f"Number of control points: {len(sequence )}")
-            self.log(f"Total MU: {round(np.sum(sequence ),3)}")
-            self.scrollframe = MU_Sequence(self.tab("RTPLAN"), sequence)
+            self.log(f"Number of beams: {len(beams)}")
+            self.log(f"Number of control points: {len(self.sequence)}")
+            self.log(f"Total MU: {round(np.sum(self.sequence),3)}")
+            self.scrollframe = MU_Sequence(self.tab("RTPLAN"), self.sequence)
             self.scrollframe.grid(row=2, column=1, columnspan=3, sticky="ew", padx=5, pady=(20,1))                              
         else:
             self.log("No RTPLAN selected")

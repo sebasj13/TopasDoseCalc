@@ -221,23 +221,23 @@ class Options(ctk.CTkTabview):
         flag = 0
         
         for i,file in enumerate(natsorted(files)):
-            
-            ds = dcmread(file)
             self.parent.pbvar.set((i+1)/len(files))
-            if flag == 0:
-                data = ds.pixel_array * ds.DoseGridScaling
-                data *= float(self.reference_scale_entry.get()) * (float(self.reference_histories_entry.get()) / float(self.histories_entry.get()))
-                if self.mus_checkbox._check_state == False:
-                    data *= (float(self.sequence [i]) / float(self.reference_mus_entry.get()))
-                flag = 1
-            else:
-                newdata = ds.pixel_array * ds.DoseGridScaling
-                newdata *= float(self.reference_scale_entry.get()) * (float(self.reference_histories_entry.get()) / float(self.histories_entry.get()))
-                if self.mus_checkbox._check_state == False:
+            if self.sequence[i] != 0:
+                ds = dcmread(file)
+                if flag == 0:
+                    data = ds.pixel_array * ds.DoseGridScaling
+                    data *= float(self.reference_scale_entry.get()) * (float(self.reference_histories_entry.get()) / float(self.histories_entry.get()))
+                    if self.mus_checkbox._check_state == False:
+                        data *= (float(self.sequence [i]) / float(self.reference_mus_entry.get()))
+                    flag = 1
+                else:
+                    newdata = ds.pixel_array * ds.DoseGridScaling
+                    newdata *= float(self.reference_scale_entry.get()) * (float(self.reference_histories_entry.get()) / float(self.histories_entry.get()))
+                    if self.mus_checkbox._check_state == False:
 
-                    newdata *= (float(self.sequence [i]) / float(self.reference_mus_entry.get()))
+                        newdata *= (float(self.sequence [i]) / float(self.reference_mus_entry.get()))
 
-                data = np.add(data, newdata)
+                    data = np.add(data, newdata)
         data *= self.fractions
         with dcmread(file) as ds:
             if self.mus_checkbox._check_state == True:
@@ -254,6 +254,8 @@ class Options(ctk.CTkTabview):
             self.log("Merging isocenter data...")
             data = []
             for i,file in enumerate(natsorted(iso_files)):
+                if self.sequence [i] == 0:
+                    continue
                 self.parent.pbvar.set((i+1)/len(iso_files))
                 scale =  float(self.reference_scale_entry.get()) * (float(self.reference_histories_entry.get()) / float(self.histories_entry.get())) * float(self.sequence [i]) / float(self.reference_mus_entry.get())
                 data += [self.read_iso_csv(file, scale)]
@@ -265,7 +267,7 @@ class Options(ctk.CTkTabview):
             max_dose = []
             for i in range(len(data[0])):
                 self.parent.pbvar.set((i+1)/len(data[0]))
-                dose += [ sum([data[j][i][0] for j in range(len(data))])  ]
+                dose += [(a:= sum([data[j][i][0] for j in range(len(data))])  )]
                 std_dev += [ np.sqrt(sum([data[j][i][1]**2 for j in range(len(data))])) * 1/(np.sqrt(len(data)))]
                 n_hist += [ sum([data[j][i][2] for j in range(len(data))])  ]
                 count_in_bin +=  [sum([data[j][i][3] for j in range(len(data))])  ]
@@ -355,7 +357,7 @@ class Options(ctk.CTkTabview):
                     except AttributeError:
                         pass
             self.sequence = np.array(mu)
-            self.fractions = plan.summary[0]["Fractions"]
+            self.fractions = float(plan.summary[0]["Fractions"])
             self.dose = sum([plan.rt_plan.FractionGroupSequence[0].ReferencedBeamSequence[i].BeamDose for i in range(len(beams))])
             self.log(f"Prescription: {self.fractions} x {round(self.dose,2)} Gy")
             self.log(f"Number of beams: {len(beams)}")

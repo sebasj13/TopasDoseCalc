@@ -9,6 +9,7 @@ from .structure_selector import StructureSelector
 from .gamma import crop_dose_to_roi, gamma
 from tkinter.filedialog import askdirectory, askopenfilename
 from natsort import natsorted
+from .accuracy_prediction import accuracy_prediction
 
 class Options(ctk.CTkTabview):
     def __init__(self, parent):
@@ -114,7 +115,7 @@ class Options(ctk.CTkTabview):
             self.reference_checkbox._check_state == True and\
             self.descriptioncheckbox._check_state == True) and \
             (self.mus_checkbox._check_state == True or \
-            (self.rtplan_checkbox._check_state == True and len(self.sequence.flatten()) > 0)):
+            (self.rtplan_checkbox._check_state == True and len(self.sequence ) > 0)):
             if self.merge_button.cget("state") == "disabled":
                 self.log("All options selected. Ready to merge dose files.")
                 self.merge_button.configure(state="normal") 
@@ -199,7 +200,7 @@ class Options(ctk.CTkTabview):
                 self.log(f"Found {len(iso_files)} isocenter files in selected folder")
             
             if self.mus_checkbox._check_state == False:
-                if len(files) != len(self.sequence.flatten()):
+                if len(files) != len(self.sequence ):
                     self.log("Number of dose files does not match number of control points. Trying to merge individual fields...")
                     
                     try:
@@ -227,14 +228,14 @@ class Options(ctk.CTkTabview):
                 data = ds.pixel_array * ds.DoseGridScaling
                 data *= float(self.reference_scale_entry.get()) * (float(self.reference_histories_entry.get()) / float(self.histories_entry.get()))
                 if self.mus_checkbox._check_state == False:
-                    data *= (float(self.sequence.flatten()[i]) / float(self.reference_mus_entry.get()))
+                    data *= (float(self.sequence [i]) / float(self.reference_mus_entry.get()))
                 flag = 1
             else:
                 newdata = ds.pixel_array * ds.DoseGridScaling
                 newdata *= float(self.reference_scale_entry.get()) * (float(self.reference_histories_entry.get()) / float(self.histories_entry.get()))
                 if self.mus_checkbox._check_state == False:
 
-                    newdata *= (float(self.sequence.flatten()[i]) / float(self.reference_mus_entry.get()))
+                    newdata *= (float(self.sequence [i]) / float(self.reference_mus_entry.get()))
 
                 data = np.add(data, newdata)
         data *= self.fractions
@@ -249,12 +250,12 @@ class Options(ctk.CTkTabview):
             self.log(f"Saved merged dose file to {os.path.join(self.folder.get(), f'{self.descriptionentry.get().strip()}.dcm')}")
         self.parent.pbvar.set(0)
         
-        if self.mergeiso.get() == True and len(iso_files) == len(self.sequence.flatten()):
+        if self.mergeiso.get() == True and len(iso_files) == len(self.sequence ):
             self.log("Merging isocenter data...")
             data = []
             for i,file in enumerate(natsorted(iso_files)):
                 self.parent.pbvar.set((i+1)/len(iso_files))
-                scale =  float(self.reference_scale_entry.get()) * (float(self.reference_histories_entry.get()) / float(self.histories_entry.get())) * float(self.sequence.flatten()[i]) / float(self.reference_mus_entry.get())
+                scale =  float(self.reference_scale_entry.get()) * (float(self.reference_histories_entry.get()) / float(self.histories_entry.get())) * float(self.sequence [i]) / float(self.reference_mus_entry.get())
                 data += [self.read_iso_csv(file, scale)]
             self.parent.pbvar.set(0)
             dose = []
@@ -355,17 +356,15 @@ class Options(ctk.CTkTabview):
                     for j in range(len(ds.BeamSequence[i].ControlPointSequence)):
                         mus = ds.FractionGroupSequence[0].ReferencedBeamSequence[i].BeamMeterset
                         temp.append(ds.BeamSequence[i].ControlPointSequence[j].CumulativeMetersetWeight * mus)
-                sequence.append(np.diff(temp))
-            sequence = np.array(sequence)
-            self.sequence = sequence
+                sequence += np.diff(temp).tolist()
+            self.sequence = np.array(sequence)
             self.fractions = ds.FractionGroupSequence[0].NumberOfFractionsPlanned
             self.log(f"Prescription: {self.fractions} x {round(self.dose,2)} Gy")
             self.log(f"Number of beams: {len(sequence)}")
-            self.log(f"Number of control points: {len(sequence.flatten())}")
-            self.log(f"Total MU: {round(np.sum(sequence.flatten()),3)}")
+            self.log(f"Number of control points: {len(sequence )}")
+            self.log(f"Total MU: {round(np.sum(sequence ),3)}")
             self.scrollframe = MU_Sequence(self.tab("RTPLAN"), sequence)
-            self.scrollframe.grid(row=2, column=1, columnspan=3, sticky="ew", padx=5, pady=(20,1))
-                                             
+            self.scrollframe.grid(row=2, column=1, columnspan=3, sticky="ew", padx=5, pady=(20,1))                              
         else:
             self.log("No RTPLAN selected")
             

@@ -10,6 +10,7 @@ from .gamma import crop_dose_to_roi, gamma
 from tkinter.filedialog import askdirectory, askopenfilename
 from natsort import natsorted
 from mlca.mlc_analyzer import Plan
+import hashlib
 
 class Options(ctk.CTkTabview):
     def __init__(self, parent):
@@ -172,6 +173,7 @@ class Options(ctk.CTkTabview):
             self.reference_checkbox.configure(state="normal")
             self.reference_checkbox.deselect()
             self.reference_checkbox.configure(state="disabled")
+
             
     def merge_dose_files(self):
         files = []
@@ -242,6 +244,7 @@ class Options(ctk.CTkTabview):
         with dcmread(file) as ds:
             if self.mus_checkbox._check_state == True:
                 data *= (float(self.mus_entry.get()) / float(self.reference_mus_entry.get()))
+
             ds.DoseGridScaling = np.max(data) / (2 ** int(ds.HighBit))
             data = (data / ds.DoseGridScaling).astype(np.uint32)
             ds.PixelData = data.tobytes()
@@ -267,8 +270,8 @@ class Options(ctk.CTkTabview):
             max_dose = []
             for i in range(len(data[0])):
                 self.parent.pbvar.set((i+1)/len(data[0]))
-                dose += [(a:= sum([data[j][i][0] for j in range(len(data))])  )]
-                std_dev += [ np.sqrt(sum([data[j][i][1]**2 for j in range(len(data))])) * 1/(np.sqrt(len(data)))]
+                dose += [(a:= sum([data[j][i][0] if data[j][i][0] > 0 else 0 for j in range(len(data))])  )]
+                std_dev += [ np.sqrt(sum([data[j][i][1]**2 if data[j][i][1] > 0 else 0  for j in range(len(data))])) * 1/(np.sqrt(len(data)))]
                 n_hist += [ sum([data[j][i][2] for j in range(len(data))])  ]
                 count_in_bin +=  [sum([data[j][i][3] for j in range(len(data))])  ]
                 max_dose += [ max([data[j][i][0] for j in range(len(data))])  ]
@@ -276,9 +279,10 @@ class Options(ctk.CTkTabview):
 
             dose_to_isocenter = np.average(dose)
             statistical_accuracy = np.average([1/dose[i] * std_dev[i] * np.sqrt(n_hist) for i in range(len(dose))])
-            self.log(f"Dose to isocenter: {round(dose_to_isocenter*self.fractions,2)} Gy")
-            self.log(f"Isocenter dose deviation: {round((dose_to_isocenter/self.dose)*100 - 100,2)}%")
+            self.log(f"Dose to reference point: {round(dose_to_isocenter*self.fractions,2)} Gy")
+            self.log(f"Reference point dose deviation: {round((dose_to_isocenter/self.dose)*100 - 100,2)}%")
             self.log(f"Statistical accuracy: {round(100*statistical_accuracy,2)}%")
+            self.log(f"Average counts in PTV: {int(np.average(count_in_bin))}")
             with open(os.path.join(self.folder.get(), f"{self.descriptionentry.get().strip()}_iso.csv"), "w") as file:
                 np.savetxt(file, data, delimiter=",", header="Sum\tStandard_Deviation\tHistories_with_Scorer_Active\tCount_in_Bin\tMax", comments="", fmt='%1.4e\t%1.4e\t%1.0f\t%1.0f\t%1.4e') 
             self.log(f"Saved merged isocenter file to {os.path.join(self.folder.get(), f'{self.descriptionentry.get().strip()}_iso.csv')}")
@@ -318,26 +322,49 @@ class Options(ctk.CTkTabview):
         self.dicomimage = ctk.CTkImage(dark_image=Image.open(self.resource_path(os.path.join("src","images","dcm.ico"))), size=(40,24))
         self.rtplan_button = ctk.CTkButton(self.tab("RTPLAN"), image=self.dicomimage, compound="left", text="Load RTPLAN", width=30, command=self.load_mu_sequence)
         
+        self.interpolatelabel = ctk.CTkLabel(self.tab("RTPLAN"), text="Interpolated control points", font=("Bahnschrift",14), fg_color="#2B2B2B", anchor="w")
+        self.interpolate = ctk.BooleanVar(self, value=False)
+        self.interpolatecheckbox = ctk.CTkCheckBox(self.tab("RTPLAN"), text="", width=30, variable = self.interpolate, command=self.change_sequence)
+
         self.mergeisolabel = ctk.CTkLabel(self.tab("RTPLAN"), text="Merge Isocenter data", font=("Bahnschrift",14), fg_color="#2B2B2B", anchor="w")
         self.mergeiso = ctk.BooleanVar(self, value=False)
         self.mergeisocheckbox = ctk.CTkCheckBox(self.tab("RTPLAN"), text="", width=30, variable = self.mergeiso)
-        self.mergeisolabel.grid(row=3, column=1, columnspan=4, sticky="nsew", padx=5, pady=(20,1))
-        self.mergeisocheckbox.grid(row=3, column=0, sticky="nsew", padx=5, pady=(20,1))
+        self.mergeisolabel.grid(row=1, column=1, columnspan=4, sticky="nsew", padx=5, pady=(20,1))
+        self.mergeisocheckbox.grid(row=1, column=0, sticky="nsew", padx=5, pady=(20,1))
         
     def reveal_button(self):
         if self.rtplan_checkbox._check_state == True:
-            self.rtplan_button.grid(row=1, column=1, sticky="nsw", padx=5, pady=(20,1))
+            self.rtplan_button.grid(row=2, column=1, sticky="nsw", padx=5, pady=(20,1))
+            self.interpolatelabel.grid(row=2, column=3, columnspan=4, sticky="w", padx=5, pady=(20,1))
+            self.interpolatecheckbox.grid(row=2, column=2, sticky="e", padx=5, pady=(20,1))
             self.mus_checkbox.deselect()
-            try: self.scrollframe.grid(row=2, column=1, columnspan=3, sticky="ew", padx=5, pady=(20,1))
+            try: self.scrollframe.grid(row=5, column=1, columnspan=3, sticky="ew", padx=5, pady=(20,1))
             except Exception: pass
         else:
             self.rtplan_button.grid_forget()
+            self.interpolatelabel.grid_forget()
+            self.interpolatecheckbox.grid_forget()
             try: self.scrollframe.grid_forget()
             except Exception: pass
         
     def toggle_mus(self):
         if self.mus_checkbox._check_state == True:
             self.rtplan_checkbox.deselect()
+
+    def string_to_seed(self, seed_string):
+        return int(hashlib.sha256(seed_string.encode()).hexdigest(), 16) % (2**32 - 1)
+
+    def random_interpolation_same_sum(self, list, seed_string):
+        np.random.seed(self.string_to_seed(seed_string))
+        new_list = []
+        for i in range(len(list) - 1):
+            if i == 0:
+                new_list.append(round(list[i] + (a:=np.random.random()) * (list[i+1] - list[i]),5))
+            else:
+                new_list.append(round(new_list[i-1] + (b:=np.random.random()) * (list[i+1] - new_list[i-1]),5))
+        new_list.append(round(list[-1],5))
+
+        return new_list
         
     def load_mu_sequence(self):
         
@@ -347,26 +374,53 @@ class Options(ctk.CTkTabview):
             plan = Plan(path)
             self.log(f"Loading MU sequence from {path}")
             fxgroups = [var for var in plan.fx_group]
-            beams = [var.beam for var in fxgroups][0]
-            mu = []
-            for beam in beams:
-                for i, value in enumerate(beam.cp_mu):
+            self.beams = [var.beam for var in fxgroups][0]
+            mu = [[] for i in range(len(self.beams))]
+            for j, beam in enumerate(self.beams):
+                for i, value in enumerate(beam.cum_mu):
                     try:
                         beam.cp_seq[i].BeamLimitingDevicePositionSequence
-                        mu.append(value)
+                        mu[j].append(value)
                     except AttributeError:
                         pass
-            self.sequence = np.array(mu)
+            seed_string = "42"
+            self.mu = mu.copy()
+            if self.interpolate.get():
+                mu = [np.diff([0]+self.random_interpolation_same_sum(mu[i], seed_string)) for i in range(len(mu))]
+                self.log(f"Interpolated control points with seed {seed_string}!")
+            else:
+                mu = [np.roll(np.diff([0]+mu[i]),-1) for i in range(len(mu))]
+
+                self.log("No control point interpolation applied!")
+            self.sequence = np.array([item for sublist in mu for item in sublist])
             self.fractions = float(plan.summary[0]["Fractions"])
-            self.dose = sum([plan.rt_plan.FractionGroupSequence[0].ReferencedBeamSequence[i].BeamDose for i in range(len(beams))])
+            self.dose = sum([plan.rt_plan.FractionGroupSequence[0].ReferencedBeamSequence[i].BeamDose for i in range(len(self.beams))])
             self.log(f"Prescription: {self.fractions} x {round(self.dose,2)} Gy")
-            self.log(f"Number of beams: {len(beams)}")
+            self.log(f"Number of beams: {len(self.beams)}")
             self.log(f"Number of control points: {len(self.sequence)}")
             self.log(f"Total MU: {round(np.sum(self.sequence),3)}")
             self.scrollframe = MU_Sequence(self.tab("RTPLAN"), self.sequence)
-            self.scrollframe.grid(row=2, column=1, columnspan=3, sticky="ew", padx=5, pady=(20,1))                              
+            self.scrollframe.grid(row=5, column=1, columnspan=3, sticky="ew", padx=5, pady=(20,1))                              
         else:
             self.log("No RTPLAN selected")
+
+    def change_sequence(self):
+        try:
+            self.mu
+        except Exception:
+            return
+        self.scrollframe.grid_forget()
+        self.scrollframe.destroy()
+        if self.interpolate.get():
+            seed_string = "42"
+            mu = [np.diff([0]+self.random_interpolation_same_sum(self.mu[i], seed_string)) for i in range(len(self.mu))]
+            self.log(f"Interpolated control points with seed {seed_string}!")
+        else:
+            mu = [np.roll(np.diff([0]+self.mu[i]),-1) for i in range(len(self.mu))]
+            self.log("No control point interpolation applied!")
+        self.sequence = np.array([item for sublist in mu for item in sublist])
+        self.scrollframe = MU_Sequence(self.tab("RTPLAN"), self.sequence)
+        self.scrollframe.grid(row=5, column=1, columnspan=3, sticky="ew", padx=5, pady=(20,1))
             
     def init_tab3(self):
         ### TAB 3 ###
@@ -409,7 +463,7 @@ class Options(ctk.CTkTabview):
     def load_dose(self):
         self.rtdose = askopenfilename(filetypes=[("RTDOSE", "*.dcm")])
         if self.rtdose != "":
-            self.log(f"Loading reference dose from {self.rtstruct}")
+            self.log(f"Loading reference dose from {self.rtdose}")
             
     def init_tab4(self):
         ### TAB 4 ###

@@ -7,7 +7,7 @@ class MU_Sequence(ctk.CTkScrollableFrame):
     
         self.parent = parent
         super().__init__(self.parent, height=100, orientation="horizontal")
-        self.beams = len(sequence)
+        self.beams = len(self.parent.master.beams)
         self.mus = sequence
         self.rowconfigure(1, weight=1)
         self.rowconfigure(3, weight=1)

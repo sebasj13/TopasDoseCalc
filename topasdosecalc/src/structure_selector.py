@@ -179,7 +179,7 @@ class StructureSelector(ctk.CTkScrollableFrame):
             plt.gcf().legend(bbox_to_anchor=(0.5,-0.05), loc="upper center", ncols=5, fancybox=True, shadow=True, prop={'size': 8})
             plt.gcf().tight_layout()
             plt.savefig(
-                os.path.join((self.parent.master.folder.get()), "DVH.png"), dpi=600, bbox_inches='tight'
+                os.path.join(self.parent.master.folder.get(), f'{self.parent.master.descriptionentry.get().strip()}.png'), dpi=600, bbox_inches='tight'
             )
 
 

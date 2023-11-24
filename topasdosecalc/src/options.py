@@ -389,7 +389,7 @@ class Options(ctk.CTkTabview):
                 mu = [np.diff([0]+self.random_interpolation_same_sum(mu[i], seed_string)) for i in range(len(mu))]
                 self.log(f"Interpolated control points with seed {seed_string}!")
             else:
-                mu = [np.roll(np.diff([0]+mu[i]),-1) for i in range(len(mu))]
+                mu = [np.diff([0]+mu[i]) for i in range(len(mu))]
 
                 self.log("No control point interpolation applied!")
             self.sequence = np.array([item for sublist in mu for item in sublist])
